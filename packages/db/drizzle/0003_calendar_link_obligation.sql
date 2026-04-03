@@ -1,0 +1,2 @@
+ALTER TABLE "tax_calendar_events" ADD COLUMN "tax_obligation_id" uuid;--> statement-breakpoint
+ALTER TABLE "tax_calendar_events" ADD CONSTRAINT "tax_calendar_events_tax_obligation_id_tax_obligations_id_fk" FOREIGN KEY ("tax_obligation_id") REFERENCES "public"."tax_obligations"("id") ON DELETE set null ON UPDATE no action;

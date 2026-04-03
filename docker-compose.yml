@@ -1,0 +1,14 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: we4labs
+      POSTGRES_PASSWORD: we4labs
+      POSTGRES_DB: we4labs
+    ports:
+      - "5433:5432"
+    volumes:
+      - we4labs_pg:/var/lib/postgresql/data
+
+volumes:
+  we4labs_pg:

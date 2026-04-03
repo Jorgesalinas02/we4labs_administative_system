@@ -1,0 +1,19 @@
+{
+  "name": "@we4labs/api-handlers",
+  "private": true,
+  "version": "0.0.1",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "lint": "echo skip"
+  },
+  "dependencies": {
+    "@we4labs/db": "workspace:*",
+    "@we4labs/shared": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/aws-lambda": "^8.10.147",
+    "@types/node": "^22.10.2",
+    "typescript": "^5.7.3"
+  }
+}

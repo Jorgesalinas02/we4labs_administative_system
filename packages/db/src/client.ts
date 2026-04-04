@@ -6,7 +6,12 @@ import * as schema from "./schema.js";
 export type Db = ReturnType<typeof drizzle<typeof schema>>;
 
 export function createSql(connectionString: string) {
-  return postgres(connectionString, { max: 10 });
+  return postgres(connectionString, {
+    max: 10,
+    /** Menos round-trips al cerrar conexiones inactivas (útil con Neon/pooler). */
+    idle_timeout: 30,
+    connect_timeout: 15,
+  });
 }
 
 export function createDb(client: postgres.Sql) {

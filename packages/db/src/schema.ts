@@ -1,3 +1,4 @@
+import { sql } from "drizzle-orm";
 import {
   boolean,
   integer,
@@ -6,6 +7,7 @@ import {
   pgTable,
   text,
   timestamp,
+  uniqueIndex,
   uuid,
   varchar,
 } from "drizzle-orm/pg-core";
@@ -59,6 +61,38 @@ export const cashMovements = pgTable("cash_movements", {
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
 });
 
+/** Primer mes de las 12 columnas del flujo (YYYY-MM), alineado a la plantilla Excel. */
+export const cashFlowSheetSettings = pgTable("cash_flow_sheet_settings", {
+  tenantId: uuid("tenant_id")
+    .primaryKey()
+    .references(() => tenants.id, { onDelete: "cascade" }),
+  startYm: varchar("start_ym", { length: 7 }).notNull().default("2026-04"),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
+});
+
+/** Celdas persistidas: líneas editables × mes (importes en COP). */
+export const cashFlowSheetCells = pgTable(
+  "cash_flow_sheet_cells",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    tenantId: uuid("tenant_id")
+      .notNull()
+      .references(() => tenants.id, { onDelete: "cascade" }),
+    lineCode: varchar("line_code", { length: 128 }).notNull(),
+    periodYm: varchar("period_ym", { length: 7 }).notNull(),
+    amount: numeric("amount", { precision: 18, scale: 2 }).notNull().default("0"),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
+  },
+  (t) => ({
+    tenantLinePeriodUq: uniqueIndex("cash_flow_sheet_cells_tenant_line_period_uq").on(
+      t.tenantId,
+      t.lineCode,
+      t.periodYm,
+    ),
+  }),
+);
+
 export const portfolioItems = pgTable("portfolio_items", {
   id: uuid("id").primaryKey().defaultRandom(),
   tenantId: uuid("tenant_id")
@@ -67,9 +101,25 @@ export const portfolioItems = pgTable("portfolio_items", {
   kind: varchar("kind", { length: 20 }).notNull(),
   counterparty: varchar("counterparty", { length: 200 }).notNull(),
   invoiceRef: varchar("invoice_ref", { length: 80 }),
+  /** Neto a cobrar / a pagar (columna «Neto» de la hoja Control de Cartera). */
   amount: numeric("amount", { precision: 18, scale: 2 }).notNull(),
   dueOn: varchar("due_on", { length: 10 }).notNull(),
   paidOn: varchar("paid_on", { length: 10 }),
+  sortOrder: integer("sort_order"),
+  serviceDescription: text("service_description"),
+  issuedOn: varchar("issued_on", { length: 10 }),
+  grossAmount: numeric("gross_amount", { precision: 18, scale: 2 }),
+  ivaAmount: numeric("iva_amount", { precision: 18, scale: 2 }),
+  retefuenteAmount: numeric("retefuente_amount", { precision: 18, scale: 2 }),
+  reteicaAmount: numeric("reteica_amount", { precision: 18, scale: 2 }),
+  paidAmount: numeric("paid_amount", { precision: 18, scale: 2 }).notNull().default("0"),
+  /** Cobros imputados a un mes del flujo de caja (YYYY-MM), por registro de pago. */
+  paymentCashFlowAllocations: jsonb("payment_cash_flow_allocations")
+    .$type<{ periodYm: string; amountCop: number; recordedAt: string }[]>()
+    .notNull()
+    .default(sql`'[]'::jsonb`),
+  status: varchar("status", { length: 80 }),
+  notes: text("notes"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
 });
 
@@ -142,6 +192,55 @@ export const payrollParameters = pgTable("payroll_parameters", {
   senaEmployerPct: numeric("sena_employer_pct", { precision: 6, scale: 4 }),
   icbfEmployerPct: numeric("icbf_employer_pct", { precision: 6, scale: 4 }),
   cajaEmployerPct: numeric("caja_employer_pct", { precision: 6, scale: 4 }),
+  /** Referencias legales por campo empleador (misma clave camelCase que el %). */
+  employerParafiscalRefsJson: jsonb("employer_parafiscal_references_json").$type<
+    Record<string, string> | null
+  >(),
+  /** Provisión mensual típica como fracción del salario (ej. 8.33% → 0.0833). */
+  cesantiasPct: numeric("cesantias_pct", { precision: 6, scale: 4 }),
+  primaServiciosPct: numeric("prima_servicios_pct", { precision: 6, scale: 4 }),
+  vacacionesProvisionPct: numeric("vacaciones_provision_pct", { precision: 6, scale: 4 }),
+  /** Provisión mensual intereses cesantías como fracción del salario (ej. 1% → 0.01). */
+  interesesCesantiasProvisionPct: numeric("intereses_cesantias_provision_pct", {
+    precision: 6,
+    scale: 4,
+  }),
+  prestacionesRefsJson: jsonb("prestaciones_references_json").$type<Record<string, string> | null>(),
+  notes: text("notes"),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+});
+
+/** Supuestos legales / tributarios / operativos del tenant (planeación, no sustituye asesoría). */
+export const legalParameters = pgTable("legal_parameters", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  tenantId: uuid("tenant_id").references(() => tenants.id, {
+    onDelete: "cascade",
+  }),
+  effectiveFrom: varchar("effective_from", { length: 10 }).notNull(),
+  initialCashBalance: numeric("initial_cash_balance", { precision: 18, scale: 2 }).notNull(),
+  employeeCount: integer("employee_count").notNull(),
+  averageMonthlySalaryCop: numeric("average_monthly_salary_cop", {
+    precision: 18,
+    scale: 2,
+  }).notNull(),
+  /** IVA general, fracción (ej. 0.19). */
+  generalVatRatePct: numeric("general_vat_rate_pct", { precision: 6, scale: 4 }),
+  /** Fracción de clientes sujetos a retención en la fuente (ej. 0.35 = 35%). */
+  clientsWithholdingSharePct: numeric("clients_withholding_share_pct", {
+    precision: 6,
+    scale: 4,
+  }),
+  withholdingServicesRatePct: numeric("withholding_services_rate_pct", {
+    precision: 6,
+    scale: 4,
+  }),
+  icaWithholdingRatePct: numeric("ica_withholding_rate_pct", { precision: 6, scale: 4 }),
+  incomeSelfRetentionRatePct: numeric("income_self_retention_rate_pct", {
+    precision: 6,
+    scale: 4,
+  }),
+  /** Referencias normativas o metodológicas por campo (misma clave que el campo en camelCase). */
+  referencesJson: jsonb("references_json").$type<Record<string, string> | null>(),
   notes: text("notes"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
 });

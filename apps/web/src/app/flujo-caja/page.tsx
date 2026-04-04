@@ -1,52 +1,45 @@
+import { CashFlowSheetMatrix } from "@/components/cash-flow-sheet-matrix";
+import { CashMovementsTable } from "@/components/cash-movements-table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { loadCashMovements } from "@/lib/data";
-
-function money(n: string | number) {
-  const x = typeof n === "string" ? Number(n) : n;
-  return x.toLocaleString("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 });
-}
+import { loadCashFlowSheet, loadCashMovements } from "@/lib/data";
 
 export default async function FlujoCajaPage() {
-  const rows = await loadCashMovements();
+  const [sheet, rows] = await Promise.all([loadCashFlowSheet(), loadCashMovements()]);
   if (!process.env.DATABASE_URL) {
     return <p className="text-sm text-zinc-500">Conecta la base de datos.</p>;
   }
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div>
         <h1 className="text-2xl font-semibold">Flujo de caja</h1>
-        <p className="text-sm text-zinc-500">Movimientos reales y proyecciones por categoría.</p>
+        <p className="text-sm text-zinc-500">
+          Matriz mensual alineada a la hoja «Flujo de Caja» del Excel de referencia (entradas, salidas, flujo
+          neto y saldos). Los movimientos detallados siguen disponibles abajo.
+        </p>
       </div>
+
+      {sheet ? (
+        <Card className="w-max min-w-full">
+          <CardHeader>
+            <CardTitle>Proyección 12 meses</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <CashFlowSheetMatrix initial={sheet} />
+          </CardContent>
+        </Card>
+      ) : (
+        <p className="text-sm text-zinc-500">
+          No se pudo cargar la matriz de flujo de caja. Aplica migraciones (<code className="rounded bg-zinc-100 px-1 dark:bg-zinc-800">pnpm db:migrate</code>
+          ) y vuelve a intentar.
+        </p>
+      )}
+
       <Card>
         <CardHeader>
-          <CardTitle>Movimientos</CardTitle>
+          <CardTitle>Movimientos (detalle)</CardTitle>
         </CardHeader>
-        <CardContent className="overflow-x-auto">
-          <table className="w-full text-left text-sm">
-            <thead>
-              <tr className="border-b border-zinc-200 text-zinc-500 dark:border-zinc-800">
-                <th className="pb-2 pr-4 font-medium">Fecha</th>
-                <th className="pb-2 pr-4 font-medium">Tipo</th>
-                <th className="pb-2 pr-4 font-medium">Categoría</th>
-                <th className="pb-2 pr-4 font-medium">Monto</th>
-                <th className="pb-2 font-medium">Proy.</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((r) => (
-                <tr key={r.id} className="border-b border-zinc-100 dark:border-zinc-900">
-                  <td className="py-2 pr-4">{r.occurredOn}</td>
-                  <td className="py-2 pr-4">{r.kind === "inflow" ? "Entrada" : "Salida"}</td>
-                  <td className="py-2 pr-4">{r.category}</td>
-                  <td className="py-2 pr-4 tabular-nums">{money(r.amount)}</td>
-                  <td className="py-2">{r.isProjection ? "Sí" : "No"}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          {rows.length === 0 && (
-            <p className="pt-4 text-sm text-zinc-500">Sin movimientos. Ejecuta seed o agrega registros.</p>
-          )}
+        <CardContent className="p-0 sm:p-0">
+          <CashMovementsTable rows={rows} />
         </CardContent>
       </Card>
     </div>

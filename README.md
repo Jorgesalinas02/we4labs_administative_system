@@ -68,7 +68,7 @@ Las políticas exigen `set_config('app.tenant_id', …, true)` en cada transacci
 
 Archivos fuente de requisitos en `Material/`:
 
-- `Flujo_de_Caja_Pyme_SAS.xlsx` — hojas alineadas con los módulos web.
+- `Material/Flujo_de_Caja_Pyme_SAS completo.xlsx` — libro de referencia (hoja **Control de Cartera** → módulo `/cartera`).
 - `calculadora_nomina_colombia.xlsx` — lógica y guía legal de referencia.
 - `Guia_Obligaciones_We4Labs.docx` — contenido base de la guía tributaria.
 

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { taxEventSchema } from "@we4labs/shared";
 import { taxCalendarEvents, withTenant } from "@we4labs/db";
 import { getSql } from "@/lib/db";
+import { revalidateTaxCalendarPage } from "@/lib/revalidate-data";
 import { resolveTenantId } from "@/lib/tenant";
 
 export const runtime = "nodejs";
@@ -31,6 +32,7 @@ export async function POST(req: Request) {
         })
         .returning({ id: taxCalendarEvents.id });
     });
+    revalidateTaxCalendarPage();
     return NextResponse.json({ id: row?.id });
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 400 });

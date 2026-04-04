@@ -18,7 +18,7 @@ const nav = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/supuestos", label: "Supuestos", icon: Layers },
   { href: "/flujo-caja", label: "Flujo de caja", icon: Wallet },
-  { href: "/cartera", label: "Cartera", icon: Landmark },
+  { href: "/cartera", label: "Cuentas por Cobrar", icon: Landmark },
   { href: "/calendario-tributario", label: "Calendario tributario", icon: CalendarDays },
   { href: "/guia-obligaciones", label: "Guía obligaciones", icon: BookOpen },
   { href: "/nomina", label: "Nómina", icon: Calculator },
@@ -33,23 +33,30 @@ export function AppShell({
 }) {
   const pathname = usePathname() ?? "";
   return (
-    <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950">
+    <div className="min-h-screen overflow-x-hidden bg-zinc-50 dark:bg-zinc-950">
       <PusherAlerts tenantId={tenantId ?? null} />
-      <div className="flex flex-col md:flex-row">
-        <aside className="w-full border-b border-zinc-200 bg-white md:w-60 md:min-h-screen md:border-b-0 md:border-r dark:border-zinc-800 dark:bg-zinc-950">
+      <div className="flex min-h-screen flex-col md:flex-row md:items-start">
+        <aside
+          className={cn(
+            "w-full shrink-0 border-b border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950",
+            "md:sticky md:top-0 md:h-screen md:w-60 md:min-w-[15rem] md:max-w-[15rem]",
+            "md:overflow-y-auto md:border-b-0 md:border-r",
+          )}
+        >
           <div className="p-4">
             <Link href="/dashboard" className="text-lg font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
               We4Labs Admin
             </Link>
             <p className="mt-1 text-xs text-zinc-500">Colombia · multi-tenant</p>
           </div>
-          <nav className="flex flex-row gap-1 overflow-x-auto px-2 pb-3 md:flex-col md:px-3">
+          <nav className="flex flex-row gap-1 overflow-x-auto px-2 pb-3 md:flex-col md:overflow-x-visible md:px-3">
             {nav.map(({ href, label, icon: Icon }) => (
               <Link
                 key={href}
                 href={href}
+                prefetch
                 className={cn(
-                  "flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-zinc-600 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-900",
+                  "flex items-center gap-2 whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium text-zinc-600 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-900",
                   pathname === href &&
                     "bg-zinc-900 text-white hover:bg-zinc-900 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-100",
                 )}
@@ -60,7 +67,7 @@ export function AppShell({
             ))}
           </nav>
         </aside>
-        <main className="flex-1 p-4 md:p-8">{children}</main>
+        <main className="min-w-0 flex-1 overflow-x-auto p-4 md:p-8">{children}</main>
       </div>
     </div>
   );

@@ -1,35 +1,26 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { loadScenarios } from "@/lib/data";
+import { loadLatestLegalParams, loadLatestPayrollParams, loadScenarios } from "@/lib/data";
+import { SupuestosView } from "@/components/supuestos-view";
 
 export default async function SupuestosPage() {
-  const rows = await loadScenarios();
   if (!process.env.DATABASE_URL) {
-    return <p className="text-sm text-zinc-500">Conecta la base de datos para ver escenarios.</p>;
+    return <p className="text-sm text-zinc-500">Conecta la base de datos para ver supuestos.</p>;
   }
+
+  const [scenarios, payroll, legal] = await Promise.all([
+    loadScenarios(),
+    loadLatestPayrollParams(),
+    loadLatestLegalParams(),
+  ]);
+
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-semibold">Supuestos</h1>
-        <p className="text-sm text-zinc-500">Escenarios de planeación (tasa, inflación, notas).</p>
+        <p className="text-sm text-zinc-500">
+          Parámetros legales y de planeación, nómina (aportes y prestaciones) por tenant.
+        </p>
       </div>
-      <div className="grid gap-4 md:grid-cols-2">
-        {rows.length === 0 ? (
-          <p className="text-sm text-zinc-500">No hay escenarios. Ejecuta el seed o crea uno vía API.</p>
-        ) : (
-          rows.map((s) => (
-            <Card key={s.id}>
-              <CardHeader>
-                <CardTitle>{s.name}</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-1 text-sm text-zinc-600 dark:text-zinc-400">
-                {s.annualRatePct != null && <p>Tasa anual: {String(s.annualRatePct)}%</p>}
-                {s.inflationPct != null && <p>Inflación: {String(s.inflationPct)}%</p>}
-                {s.notes && <p className="pt-2 text-zinc-500">{s.notes}</p>}
-              </CardContent>
-            </Card>
-          ))
-        )}
-      </div>
+      <SupuestosView scenarios={scenarios} payroll={payroll} legal={legal} />
     </div>
   );
 }

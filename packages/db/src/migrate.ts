@@ -10,7 +10,17 @@ import { drizzle } from "drizzle-orm/postgres-js";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const url = process.env.DATABASE_URL ?? "postgres://we4labs:we4labs@localhost:5433/we4labs";
 
+function dbHostHint(raw: string): string {
+  try {
+    const u = new URL(raw.replace(/^postgres(ql)?:/i, "http:"));
+    return u.hostname;
+  } catch {
+    return "(revisa DATABASE_URL)";
+  }
+}
+
 async function main() {
+  console.log("Migrando base de datos:", dbHostHint(url));
   const client = postgres(url, { max: 1 });
   const db = drizzle(client);
   await migrate(db, { migrationsFolder: path.join(__dirname, "../drizzle") });

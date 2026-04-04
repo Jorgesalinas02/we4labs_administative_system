@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { cashMovementSchema } from "@we4labs/shared";
 import { cashMovements, withTenant } from "@we4labs/db";
 import { getSql } from "@/lib/db";
+import { revalidateAfterCashMovement } from "@/lib/revalidate-data";
 import { resolveTenantId } from "@/lib/tenant";
 
 export const runtime = "nodejs";
@@ -27,6 +28,7 @@ export async function POST(req: Request) {
         description: body.description ?? null,
       });
     });
+    revalidateAfterCashMovement();
     return NextResponse.json({ ok: true });
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 400 });

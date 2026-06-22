@@ -1,0 +1,4 @@
+{
+  "installCommand": "cd ../.. && pnpm install",
+  "buildCommand": "cd ../.. && pnpm --filter @we4labs/shared build && pnpm --filter @we4labs/db build && pnpm --filter @we4labs/web build"
+}

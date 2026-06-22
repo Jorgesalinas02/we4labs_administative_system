@@ -13,6 +13,7 @@ import {
   TrendingUp,
   Users,
 } from "lucide-react";
+import { UserButton } from "@clerk/nextjs";
 import { cn } from "@/lib/cn";
 import { PusherAlerts } from "@/components/pusher-alerts";
 
@@ -47,11 +48,20 @@ export function AppShell({
             "md:overflow-y-auto md:border-b-0 md:border-r",
           )}
         >
-          <div className="p-4">
-            <Link href="/dashboard" className="text-lg font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
-              We4Labs Admin
-            </Link>
-            <p className="mt-1 text-xs text-zinc-500">Colombia · multi-tenant</p>
+          <div className="flex items-center justify-between p-4">
+            <div>
+              <Link href="/dashboard" className="text-lg font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
+                We4Labs Admin
+              </Link>
+              <p className="mt-0.5 text-xs text-zinc-500">Sistema administrativo</p>
+            </div>
+            <UserButton
+              appearance={{
+                elements: {
+                  avatarBox: "h-8 w-8",
+                },
+              }}
+            />
           </div>
           <nav className="flex flex-row gap-1 overflow-x-auto px-2 pb-3 md:flex-col md:overflow-x-visible md:px-3">
             {nav.map(({ href, label, icon: Icon }) => (

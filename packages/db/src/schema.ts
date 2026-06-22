@@ -19,6 +19,7 @@ export const tenants = pgTable("tenants", {
   slug: varchar("slug", { length: 80 }).notNull().unique(),
   sector: varchar("sector", { length: 120 }),
   brandingJson: jsonb("branding_json").$type<Record<string, string> | null>(),
+  clerkUserId: varchar("clerk_user_id", { length: 200 }).unique(),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
 });
 

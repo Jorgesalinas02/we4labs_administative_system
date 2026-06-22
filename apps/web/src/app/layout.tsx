@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { ClerkProvider } from "@clerk/nextjs";
+import { esCO } from "@clerk/localizations";
 import "./globals.css";
 import { AppShell } from "@/components/app-shell";
 import { resolveTenantId } from "@/lib/tenant";
@@ -19,10 +21,12 @@ export default async function RootLayout({
 }>) {
   const tenantId = await resolveTenantId();
   return (
-    <html lang="es">
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-        <AppShell tenantId={tenantId}>{children}</AppShell>
-      </body>
-    </html>
+    <ClerkProvider localization={esCO}>
+      <html lang="es">
+        <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+          <AppShell tenantId={tenantId}>{children}</AppShell>
+        </body>
+      </html>
+    </ClerkProvider>
   );
 }

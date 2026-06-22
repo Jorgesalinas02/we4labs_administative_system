@@ -32,21 +32,94 @@ import { resolveTenantId } from "./tenant";
 async function runLoadDashboard(tenantId: string) {
   const sql = getSql();
   return withTenant(sql, tenantId, async (db) => {
-    const [real, portfolio] = await Promise.all([
+    const today = new Date().toISOString().slice(0, 10);
+    const currentYm = today.slice(0, 7);
+
+    const [entries, allCategories, portfolio, taxEvents, settingsRows] = await Promise.all([
       db
         .select()
-        .from(cashMovements)
-        .where(eq(cashMovements.isProjection, false)),
+        .from(cashFlowEntries)
+        .where(eq(cashFlowEntries.tenantId, tenantId))
+        .orderBy(desc(cashFlowEntries.occurredOn)),
+      db
+        .select()
+        .from(businessCategories)
+        .where(eq(businessCategories.tenantId, tenantId)),
       db.select().from(portfolioItems),
+      db
+        .select({
+          id: taxCalendarEvents.id,
+          name: taxObligations.name,
+          dueOn: taxCalendarEvents.dueOn,
+          status: taxCalendarEvents.status,
+        })
+        .from(taxCalendarEvents)
+        .leftJoin(taxObligations, eq(taxCalendarEvents.taxObligationId, taxObligations.id))
+        .orderBy(taxCalendarEvents.dueOn),
+      db
+        .select()
+        .from(cashFlowSheetSettings)
+        .where(eq(cashFlowSheetSettings.tenantId, tenantId))
+        .limit(1),
     ]);
-    let inflow = 0;
-    let outflow = 0;
-    for (const r of real) {
-      const n = Number(r.amount);
-      if (r.kind === "inflow") inflow += n;
-      else outflow += n;
+
+    // KPIs del mes actual
+    const incomeKinds = new Set(
+      allCategories.filter((c) => c.kind === "income").map((c) => c.code),
+    );
+    let currentInflow = 0;
+    let currentOutflow = 0;
+    let totalInflow = 0;
+    let totalOutflow = 0;
+
+    const monthTotals = new Map<string, { inflow: number; outflow: number }>();
+    for (const e of entries) {
+      const n = Number(e.amount);
+      const ym = e.periodYm;
+      const isIncome = incomeKinds.has(e.categoryCode);
+      const cur = monthTotals.get(ym) ?? { inflow: 0, outflow: 0 };
+      if (isIncome) {
+        cur.inflow += n;
+        totalInflow += n;
+        if (ym === currentYm) currentInflow += n;
+      } else {
+        cur.outflow += n;
+        totalOutflow += n;
+        if (ym === currentYm) currentOutflow += n;
+      }
+      monthTotals.set(ym, cur);
     }
-    const today = new Date().toISOString().slice(0, 10);
+
+    // Saldo inicial de caja
+    const settings = settingsRows[0];
+    const initialBalance = settings ? Number(settings.initialCashBalance ?? 0) : 0;
+    const currentBalance = initialBalance + totalInflow - totalOutflow;
+
+    // Últimas 8 transacciones
+    const recentTransactions = entries.slice(0, 8).map((e) => {
+      const cat = allCategories.find((c) => c.code === e.categoryCode);
+      return {
+        id: e.id,
+        categoryName: cat?.name ?? e.categoryCode,
+        kind: incomeKinds.has(e.categoryCode) ? ("income" as const) : ("expense" as const),
+        amount: Number(e.amount),
+        occurredOn: e.occurredOn,
+        description: e.description,
+      };
+    });
+
+    // Próximas obligaciones tributarias (siguientes 5)
+    const upcomingObligations = taxEvents
+      .filter((t) => t.dueOn >= today && t.status !== "done")
+      .slice(0, 5)
+      .map((t) => ({
+        id: t.id,
+        name: t.name ?? "Obligación tributaria",
+        dueOn: t.dueOn,
+        status: t.status,
+      }));
+
+    // Cartera vencida
     let overdueRecv = 0;
     let overduePay = 0;
     for (const p of portfolio) {
@@ -56,32 +129,28 @@ async function runLoadDashboard(tenantId: string) {
         else overduePay += Number(p.amount);
       }
     }
-    const monthTotals = new Map<string, { inflow: number; outflow: number }>();
-    for (const r of real) {
-      const ym = r.occurredOn.slice(0, 7);
-      const cur = monthTotals.get(ym) ?? { inflow: 0, outflow: 0 };
-      const n = Number(r.amount);
-      if (r.kind === "inflow") cur.inflow += n;
-      else cur.outflow += n;
-      monthTotals.set(ym, cur);
-    }
+
     const cashflowByMonth = [...monthTotals.entries()]
       .sort(([a], [b]) => a.localeCompare(b))
       .map(([month, v]) => ({
         month,
-        label: month,
+        label: cashFlowMonthLabelEs(month),
         inflow: v.inflow,
         outflow: v.outflow,
+        net: v.inflow - v.outflow,
       }));
+
     return {
-      inflow,
-      outflow,
-      net: inflow - outflow,
+      currentInflow,
+      currentOutflow,
+      currentNet: currentInflow - currentOutflow,
+      currentBalance,
       overdueReceivables: overdueRecv,
       overduePayables: overduePay,
-      movementCount: real.length,
-      portfolioOpen: portfolio.filter((p) => !p.paidOn).length,
+      entryCount: entries.length,
       cashflowByMonth,
+      recentTransactions,
+      upcomingObligations,
     };
   });
 }

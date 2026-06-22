@@ -8,7 +8,7 @@ import { drizzle } from "drizzle-orm/postgres-js";
 import { and, asc, desc, eq } from "drizzle-orm";
 import * as schema from "./schema.js";
 import { type Db, withTenant } from "./client.js";
-import { CASH_FLOW_DEFAULT_START_YM, cashFlowMonthPeriods } from "@we4labs/shared";
+import { CASH_FLOW_DEFAULT_START_YM, cashFlowMonthPeriods, ALL_CATEGORIES_CATALOG } from "@we4labs/shared";
 import { TAX_OBLIGATIONS_FLUJO_PYME_SAS } from "./tax-obligations-seed-data.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -179,6 +179,64 @@ async function mergeTaxCalendarFromTemplate(tdb: Db, tenantId: string) {
   );
 }
 
+/** Categorías de negocio que se activan por defecto para el tenant demo. */
+const DEFAULT_CATEGORY_CODES = [
+  // Ingresos
+  "anticipo_proyecto",
+  "pago_hito",
+  "pago_final",
+  "venta_contado",
+  "recaudo_cartera",
+  "suscripcion_licencia",
+  "retainer_mensual",
+  "consultoria_capacitacion",
+  "intereses_ganados",
+  "aporte_socios",
+  // Egresos
+  "subcontratistas",
+  "diseno_ux_freelance",
+  "sueldo_founders",
+  "salario_empleados",
+  "honorarios_contratistas",
+  "prestaciones_sociales",
+  "seg_social_parafiscales",
+  "arriendo_oficina",
+  "servicios_publicos_internet",
+  "software_suscripciones",
+  "contador_honorarios",
+  "iva_exp",
+  "retencion_fuente_exp",
+  "equipos_computo",
+];
+
+async function mergeDefaultBusinessCategories(tdb: Db, tenantId: string) {
+  const existing = await tdb
+    .select({ code: schema.businessCategories.code })
+    .from(schema.businessCategories)
+    .where(eq(schema.businessCategories.tenantId, tenantId));
+  const existingCodes = new Set(existing.map((r) => r.code));
+
+  let inserted = 0;
+  let order = existing.length;
+  for (const code of DEFAULT_CATEGORY_CODES) {
+    if (existingCodes.has(code)) continue;
+    const def = ALL_CATEGORIES_CATALOG.find((c) => c.code === code);
+    if (!def) continue;
+    await tdb.insert(schema.businessCategories).values({
+      tenantId,
+      kind: def.kind,
+      parentCode: def.parentCode,
+      parentLabel: def.parentLabel,
+      code: def.code,
+      label: def.label,
+      asksClient: def.asksClient,
+      sortOrder: order++,
+    });
+    inserted++;
+  }
+  console.log(`Categorías de negocio: ${inserted} nuevas insertadas (${existingCodes.size} ya existían).`);
+}
+
 /** UUID fijo del tenant demo (documentado en .env.example como DEV_TENANT_ID). */
 const DEMO_TENANT_ID = "00000000-0000-4000-a000-000000000001";
 
@@ -192,9 +250,18 @@ async function main() {
       id: DEMO_TENANT_ID,
       name: "We4Labs Demo",
       slug: "we4labs-demo",
+      sector: "Servicios profesionales / consultoría",
       brandingJson: { primary: "221 83% 48%" },
     })
     .onConflictDoNothing({ target: schema.tenants.slug });
+
+  // Sincronizar sector si el tenant ya existía sin él
+  await db
+    .update(schema.tenants)
+    .set({ sector: "Servicios profesionales / consultoría" })
+    .where(
+      and(eq(schema.tenants.slug, "we4labs-demo"), eq(schema.tenants.id, DEMO_TENANT_ID)),
+    );
 
   const tenant = await db.query.tenants.findFirst({
     where: eq(schema.tenants.slug, "we4labs-demo"),
@@ -262,6 +329,8 @@ async function main() {
   const payrollSeed = {
     effectiveFrom: "2026-01-01",
     smmlv: "1423500",
+    /** UVT 2026 — Decreto 2221/2025 DIAN: $ 49.799 COP */
+    uvt: "49799",
     transportAidMonthly: "200000",
     healthEmployeePct: "0.04",
     healthEmployerPct: "0.085",
@@ -341,7 +410,7 @@ async function main() {
     if (!cfCell) {
       await tdb
         .insert(schema.cashFlowSheetSettings)
-        .values({ tenantId, startYm: CASH_FLOW_DEFAULT_START_YM })
+        .values({ tenantId, startYm: CASH_FLOW_DEFAULT_START_YM, minCashBufferPct: "0.10" })
         .onConflictDoNothing({ target: schema.cashFlowSheetSettings.tenantId });
       const months = cashFlowMonthPeriods(CASH_FLOW_DEFAULT_START_YM);
       const nominaEjemplo = "3314820";
@@ -363,6 +432,7 @@ async function main() {
 
     await mergeTaxObligationsFromExcelTemplate(tdb, tenantId);
     await mergeTaxCalendarFromTemplate(tdb, tenantId);
+    await mergeDefaultBusinessCategories(tdb, tenantId);
 
     const existing = await tdb.select().from(schema.cashMovements).limit(1);
     if (existing.length > 0) {

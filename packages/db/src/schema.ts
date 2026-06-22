@@ -17,6 +17,7 @@ export const tenants = pgTable("tenants", {
   id: uuid("id").primaryKey().defaultRandom(),
   name: varchar("name", { length: 200 }).notNull(),
   slug: varchar("slug", { length: 80 }).notNull().unique(),
+  sector: varchar("sector", { length: 120 }),
   brandingJson: jsonb("branding_json").$type<Record<string, string> | null>(),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
 });
@@ -67,6 +68,8 @@ export const cashFlowSheetSettings = pgTable("cash_flow_sheet_settings", {
     .primaryKey()
     .references(() => tenants.id, { onDelete: "cascade" }),
   startYm: varchar("start_ym", { length: 7 }).notNull().default("2026-04"),
+  /** Colchón mínimo de seguridad como fracción del total de egresos (ej. 0.10 = 10%). */
+  minCashBufferPct: numeric("min_cash_buffer_pct", { precision: 6, scale: 4 }),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
 });
 
@@ -81,6 +84,7 @@ export const cashFlowSheetCells = pgTable(
     lineCode: varchar("line_code", { length: 128 }).notNull(),
     periodYm: varchar("period_ym", { length: 7 }).notNull(),
     amount: numeric("amount", { precision: 18, scale: 2 }).notNull().default("0"),
+    notes: text("notes"),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
   },
@@ -176,6 +180,8 @@ export const payrollParameters = pgTable("payroll_parameters", {
   }),
   effectiveFrom: varchar("effective_from", { length: 10 }).notNull(),
   smmlv: numeric("smmlv", { precision: 14, scale: 2 }).notNull(),
+  /** UVT — Unidad de Valor Tributario vigente (COP). Decreto DIAN cada año. */
+  uvt: numeric("uvt", { precision: 14, scale: 2 }),
   transportAidMonthly: numeric("transport_aid_monthly", {
     precision: 14,
     scale: 2,
@@ -243,6 +249,51 @@ export const legalParameters = pgTable("legal_parameters", {
   referencesJson: jsonb("references_json").$type<Record<string, string> | null>(),
   notes: text("notes"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+});
+
+export const businessCategories = pgTable("business_categories", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  tenantId: uuid("tenant_id")
+    .notNull()
+    .references(() => tenants.id, { onDelete: "cascade" }),
+  kind: varchar("kind", { length: 16 }).notNull(),
+  parentCode: varchar("parent_code", { length: 100 }).notNull(),
+  parentLabel: varchar("parent_label", { length: 200 }).notNull(),
+  code: varchar("code", { length: 100 }).notNull(),
+  label: varchar("label", { length: 200 }).notNull(),
+  asksClient: varchar("asks_client", { length: 16 }).notNull().default("none"),
+  sortOrder: integer("sort_order").notNull().default(0),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+});
+
+/** Clientes del negocio. */
+export const clients = pgTable("clients", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  tenantId: uuid("tenant_id")
+    .notNull()
+    .references(() => tenants.id, { onDelete: "cascade" }),
+  name: varchar("name", { length: 200 }).notNull(),
+  nit: varchar("nit", { length: 30 }),
+  clientType: varchar("client_type", { length: 80 }),
+  notes: text("notes"),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
+});
+
+/** Transacciones individuales por categoría de negocio y mes. */
+export const cashFlowEntries = pgTable("cash_flow_entries", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  tenantId: uuid("tenant_id")
+    .notNull()
+    .references(() => tenants.id, { onDelete: "cascade" }),
+  categoryCode: varchar("category_code", { length: 100 }).notNull(),
+  periodYm: varchar("period_ym", { length: 7 }).notNull(),
+  occurredOn: varchar("occurred_on", { length: 10 }),
+  description: text("description"),
+  amount: numeric("amount", { precision: 18, scale: 2 }).notNull().default("0"),
+  clientId: uuid("client_id").references(() => clients.id, { onDelete: "set null" }),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
 });
 
 export const auditLogs = pgTable("audit_logs", {

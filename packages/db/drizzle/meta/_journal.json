@@ -85,6 +85,48 @@
       "when": 1775191200000,
       "tag": "0011_portfolio_payment_cash_flow_allocations",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1750553400000,
+      "tag": "0012_supuestos_fields",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1750554000000,
+      "tag": "0013_business_categories",
+      "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1750556400000,
+      "tag": "0014_cell_notes",
+      "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "7",
+      "when": 1750643400000,
+      "tag": "0015_cash_flow_entries",
+      "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1750647000000,
+      "tag": "0016_clients",
+      "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1750650000000,
+      "tag": "0017_entry_client",
+      "breakpoints": true
     }
   ]
 }

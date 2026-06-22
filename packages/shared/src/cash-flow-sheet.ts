@@ -34,6 +34,9 @@ export const CASH_FLOW_LINES: CashFlowLineDef[] = [
   { code: "_sp1", label: "", isHeader: true, isInput: false },
   { code: "a_ingresos_operacionales", label: "A. INGRESOS OPERACIONALES", isHeader: true, isInput: false },
   { code: "a1_recaudo_por_servicios_prestados", label: "A1. Recaudo por servicios prestados", isHeader: true, isInput: false },
+  { code: "ventas_de_contado", label: "Ventas de contado", isInput: true },
+  { code: "cobros_facturas_credito_30_dias", label: "Cobros facturas a crédito (30 días)", isInput: true },
+  { code: "cobros_facturas_credito_60_dias", label: "Cobros facturas a crédito (60 días)", isInput: true },
   { code: "servicios_de_consultor_a", label: "Servicios de consultoría", isInput: true },
   { code: "servicios_profesionales_outsourcing", label: "Servicios profesionales / outsourcing", isInput: true },
   { code: "capacitaciones_y_formaci_n", label: "Capacitaciones y formación", isInput: true },
@@ -46,6 +49,7 @@ export const CASH_FLOW_LINES: CashFlowLineDef[] = [
   { code: "_sp2", label: "", isHeader: true, isInput: false },
   { code: "a2_otros_ingresos_de_efectivo", label: "A2. Otros ingresos de efectivo", isHeader: true, isInput: false },
   { code: "rendimientos_financieros", label: "Rendimientos financieros", isInput: true },
+  { code: "arriendos_recibidos", label: "Arriendos recibidos", isInput: true },
   { code: "recuperaci_n_de_cartera_vencida", label: "Recuperación de cartera vencida", isInput: true },
   { code: "pr_stamos_cr_ditos_recibidos", label: "Préstamos / créditos recibidos", isInput: true },
   { code: "aportes_de_socios", label: "Aportes de socios", isInput: true },
@@ -74,6 +78,8 @@ export const CASH_FLOW_LINES: CashFlowLineDef[] = [
   { code: "total_n_mina_y_carga_laboral", label: "TOTAL NÓMINA Y CARGA LABORAL", isInput: false },
   { code: "_sp5", label: "", isHeader: true, isInput: false },
   { code: "b2_gastos_operativos", label: "B2. Gastos operativos", isHeader: true, isInput: false },
+  { code: "compra_inventario_materias_primas", label: "Compra de inventario / materias primas", isInput: true },
+  { code: "otros_costos_variables", label: "Otros costos variables", isInput: true },
   { code: "arriendo_oficina_coworking", label: "Arriendo oficina / coworking", isInput: true },
   { code: "servicios_p_blicos_agua_luz_gas", label: "Servicios públicos (agua, luz, gas)", isInput: true },
   { code: "internet_y_telecomunicaciones", label: "Internet y telecomunicaciones", isInput: true },
@@ -198,6 +204,9 @@ export function computeCashFlowSheet(
       ym,
       sumCodes(
         [
+          "ventas_de_contado",
+          "cobros_facturas_credito_30_dias",
+          "cobros_facturas_credito_60_dias",
           "servicios_de_consultor_a",
           "servicios_profesionales_outsourcing",
           "capacitaciones_y_formaci_n",
@@ -221,6 +230,7 @@ export function computeCashFlowSheet(
       sumCodes(
         [
           "rendimientos_financieros",
+          "arriendos_recibidos",
           "recuperaci_n_de_cartera_vencida",
           "pr_stamos_cr_ditos_recibidos",
           "aportes_de_socios",
@@ -266,6 +276,8 @@ export function computeCashFlowSheet(
       ym,
       sumCodes(
         [
+          "compra_inventario_materias_primas",
+          "otros_costos_variables",
           "arriendo_oficina_coworking",
           "servicios_p_blicos_agua_luz_gas",
           "internet_y_telecomunicaciones",

@@ -10,6 +10,8 @@ import {
   Layers,
   Wallet,
   Landmark,
+  TrendingUp,
+  Users,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { PusherAlerts } from "@/components/pusher-alerts";
@@ -18,6 +20,8 @@ const nav = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/supuestos", label: "Supuestos", icon: Layers },
   { href: "/flujo-caja", label: "Flujo de caja", icon: Wallet },
+  { href: "/proyecciones", label: "Proyecciones", icon: TrendingUp },
+  { href: "/clientes", label: "Clientes", icon: Users },
   { href: "/cartera", label: "Cuentas por Cobrar", icon: Landmark },
   { href: "/calendario-tributario", label: "Calendario tributario", icon: CalendarDays },
   { href: "/guia-obligaciones", label: "Guía obligaciones", icon: BookOpen },

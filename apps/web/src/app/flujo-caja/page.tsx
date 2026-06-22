@@ -1,38 +1,70 @@
-import { CashFlowSheetMatrix } from "@/components/cash-flow-sheet-matrix";
+import {
+  loadCashFlowSheet,
+  loadCashMovements,
+  loadBusinessCategories,
+  loadCategoryEntries,
+  loadClients,
+} from "@/lib/data";
+import { CashFlowCategoryMatrix } from "@/components/cash-flow-category-matrix";
 import { CashMovementsTable } from "@/components/cash-movements-table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { loadCashFlowSheet, loadCashMovements } from "@/lib/data";
+import { CASH_FLOW_DEFAULT_START_YM, cashFlowMonthPeriods, cashFlowMonthLabelEs } from "@we4labs/shared";
 
 export default async function FlujoCajaPage() {
-  const [sheet, rows] = await Promise.all([loadCashFlowSheet(), loadCashMovements()]);
   if (!process.env.DATABASE_URL) {
     return <p className="text-sm text-zinc-500">Conecta la base de datos.</p>;
   }
+
+  const [sheet, rows, allCategories, categoryEntries, clientsList] = await Promise.all([
+    loadCashFlowSheet(),
+    loadCashMovements(),
+    loadBusinessCategories(),
+    loadCategoryEntries(),
+    loadClients(),
+  ]);
+
+  const startYm = sheet?.startYm ?? CASH_FLOW_DEFAULT_START_YM;
+  const months = cashFlowMonthPeriods(startYm);
+  const monthLabels = months.map(cashFlowMonthLabelEs);
+
+  const saldoInicial =
+    sheet?.values["saldo_inicial_de_caja"]?.[months[0]!] ?? 0;
+
+  const incomeCategories = allCategories.filter((c) => c.kind === "income");
+  const expenseCategories = allCategories.filter((c) => c.kind === "expense");
+
   return (
     <div className="space-y-8">
       <div>
         <h1 className="text-2xl font-semibold">Flujo de caja</h1>
         <p className="text-sm text-zinc-500">
-          Matriz mensual alineada a la hoja «Flujo de Caja» del Excel de referencia (entradas, salidas, flujo
-          neto y saldos). Los movimientos detallados siguen disponibles abajo.
+          Registra ingresos y egresos mes a mes. Haz clic en{" "}
+          <span className="inline-flex h-4 w-4 items-center justify-center rounded-full border border-zinc-300 text-zinc-400">
+            +
+          </span>{" "}
+          en cualquier categoría para añadir una transacción.
         </p>
       </div>
 
-      {sheet ? (
-        <Card className="w-max min-w-full">
-          <CardHeader>
-            <CardTitle>Proyección 12 meses</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <CashFlowSheetMatrix initial={sheet} />
-          </CardContent>
-        </Card>
-      ) : (
-        <p className="text-sm text-zinc-500">
-          No se pudo cargar la matriz de flujo de caja. Aplica migraciones (<code className="rounded bg-zinc-100 px-1 dark:bg-zinc-800">pnpm db:migrate</code>
-          ) y vuelve a intentar.
-        </p>
-      )}
+      <Card className="w-max min-w-full">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base">
+            Período {startYm} — {months[months.length - 1]}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <CashFlowCategoryMatrix
+            incomeCategories={incomeCategories}
+            expenseCategories={expenseCategories}
+            initialSums={categoryEntries.sums}
+            initialEntries={categoryEntries.entries}
+            months={months}
+            monthLabels={monthLabels}
+            saldoInicial={saldoInicial}
+            clients={clientsList}
+          />
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>

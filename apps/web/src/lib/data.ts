@@ -1,5 +1,5 @@
 import "server-only";
-import { eq, desc, asc } from "drizzle-orm";
+import { eq, desc, asc, inArray, and } from "drizzle-orm";
 import {
   withTenant,
   cashMovements,
@@ -12,6 +12,10 @@ import {
   taxObligationSteps,
   payrollParameters,
   legalParameters,
+  tenants,
+  businessCategories,
+  cashFlowEntries,
+  clients,
 } from "@we4labs/db";
 import {
   CASH_FLOW_DEFAULT_START_YM,
@@ -22,7 +26,7 @@ import {
   computeCashFlowSheet,
 } from "@we4labs/shared";
 import { cacheByTenant } from "./data-cache";
-import { getSql } from "./db";
+import { getSql, getDb } from "./db";
 import { resolveTenantId } from "./tenant";
 
 async function runLoadDashboard(tenantId: string) {
@@ -280,7 +284,192 @@ export async function loadLatestLegalParams() {
   return loadLatestLegalParamsCached(tenantId);
 }
 
+async function runLoadTenantProfile(tenantId: string) {
+  const db = getDb();
+  const rows = await db.select().from(tenants).where(eq(tenants.id, tenantId)).limit(1);
+  return rows[0] ?? null;
+}
+
+const loadTenantProfileCached = cacheByTenant("tenantProfile", runLoadTenantProfile);
+
+export async function loadTenantProfile() {
+  const tenantId = await resolveTenantId();
+  if (!tenantId || !process.env.DATABASE_URL) return null;
+  return loadTenantProfileCached(tenantId);
+}
+
+async function runLoadCashFlowSettings(tenantId: string) {
+  const sql = getSql();
+  return withTenant(sql, tenantId, async (db) => {
+    const rows = await db
+      .select()
+      .from(cashFlowSheetSettings)
+      .where(eq(cashFlowSheetSettings.tenantId, tenantId))
+      .limit(1);
+    return rows[0] ?? null;
+  });
+}
+
+const loadCashFlowSettingsCached = cacheByTenant("cashFlowSettings", runLoadCashFlowSettings);
+
+export async function loadCashFlowSettings() {
+  const tenantId = await resolveTenantId();
+  if (!tenantId || !process.env.DATABASE_URL) return null;
+  return loadCashFlowSettingsCached(tenantId);
+}
+
+async function runLoadBusinessCategories(tenantId: string) {
+  const sql = getSql();
+  return withTenant(sql, tenantId, (db) =>
+    db
+      .select()
+      .from(businessCategories)
+      .where(eq(businessCategories.tenantId, tenantId))
+      .orderBy(asc(businessCategories.sortOrder), asc(businessCategories.createdAt)),
+  );
+}
+
+const loadBusinessCategoriesCached = cacheByTenant("businessCategories", runLoadBusinessCategories);
+
+export async function loadBusinessCategories() {
+  const tenantId = await resolveTenantId();
+  if (!tenantId || !process.env.DATABASE_URL) return [];
+  return loadBusinessCategoriesCached(tenantId);
+}
+
+export type BusinessCategoryRecord = Awaited<ReturnType<typeof loadBusinessCategories>>[number];
+
+// ── Celdas de categorías de flujo de caja ────────────────────────────────────
+
+export type CategoryCellsPayload = {
+  amounts: Record<string, Record<string, number>>;
+  notes: Record<string, Record<string, string>>;
+};
+
+async function runLoadCategoryCells(tenantId: string): Promise<CategoryCellsPayload> {
+  const sql = getSql();
+  return withTenant(sql, tenantId, async (db) => {
+    const cats = await db
+      .select({ code: businessCategories.code })
+      .from(businessCategories)
+      .where(eq(businessCategories.tenantId, tenantId));
+    if (cats.length === 0) return { amounts: {}, notes: {} };
+    const codes = cats.map((c) => c.code);
+    const rows = await db
+      .select()
+      .from(cashFlowSheetCells)
+      .where(
+        and(
+          eq(cashFlowSheetCells.tenantId, tenantId),
+          inArray(cashFlowSheetCells.lineCode, codes),
+        ),
+      );
+    const amounts: Record<string, Record<string, number>> = {};
+    const notes: Record<string, Record<string, string>> = {};
+    for (const r of rows) {
+      if (!amounts[r.lineCode]) amounts[r.lineCode] = {};
+      amounts[r.lineCode]![r.periodYm] = Number(r.amount);
+      if (r.notes) {
+        if (!notes[r.lineCode]) notes[r.lineCode] = {};
+        notes[r.lineCode]![r.periodYm] = r.notes;
+      }
+    }
+    return { amounts, notes };
+  });
+}
+
+const loadCategoryCellsCached = cacheByTenant("categoryCells", runLoadCategoryCells);
+
+export async function loadCategoryCells() {
+  const tenantId = await resolveTenantId();
+  if (!tenantId || !process.env.DATABASE_URL) return {};
+  return loadCategoryCellsCached(tenantId);
+}
+
+// ── Entradas de flujo de caja por categoría ──────────────────────────────────
+
+export type CashFlowEntry = {
+  id: string;
+  categoryCode: string;
+  periodYm: string;
+  occurredOn: string | null;
+  description: string | null;
+  amount: number;
+  clientId: string | null;
+  createdAt: Date | null;
+};
+
+/** Suma de entradas por [categoryCode][periodYm] */
+export type CategoryEntrySums = Record<string, Record<string, number>>;
+
+async function runLoadCategoryEntries(tenantId: string): Promise<{
+  sums: CategoryEntrySums;
+  entries: CashFlowEntry[];
+}> {
+  const sql = getSql();
+  return withTenant(sql, tenantId, async (db) => {
+    const rows = await db
+      .select()
+      .from(cashFlowEntries)
+      .where(eq(cashFlowEntries.tenantId, tenantId))
+      .orderBy(asc(cashFlowEntries.periodYm), asc(cashFlowEntries.createdAt));
+
+    const sums: CategoryEntrySums = {};
+    const entries: CashFlowEntry[] = [];
+
+    for (const r of rows) {
+      const amt = Number(r.amount);
+      if (!sums[r.categoryCode]) sums[r.categoryCode] = {};
+      sums[r.categoryCode]![r.periodYm] = (sums[r.categoryCode]![r.periodYm] ?? 0) + amt;
+      entries.push({
+        id: r.id,
+        categoryCode: r.categoryCode,
+        periodYm: r.periodYm,
+        occurredOn: r.occurredOn ?? null,
+        description: r.description ?? null,
+        amount: amt,
+        clientId: r.clientId ?? null,
+        createdAt: r.createdAt ?? null,
+      });
+    }
+    return { sums, entries };
+  });
+}
+
+const loadCategoryEntriesCached = cacheByTenant("categoryEntries", runLoadCategoryEntries);
+
+export async function loadCategoryEntries() {
+  const tenantId = await resolveTenantId();
+  if (!tenantId || !process.env.DATABASE_URL) return { sums: {}, entries: [] };
+  return loadCategoryEntriesCached(tenantId);
+}
+
+// ── Clientes ──────────────────────────────────────────────────────────────────
+
+async function runLoadClients(tenantId: string) {
+  const sql = getSql();
+  return withTenant(sql, tenantId, (db) =>
+    db
+      .select()
+      .from(clients)
+      .where(eq(clients.tenantId, tenantId))
+      .orderBy(asc(clients.name)),
+  );
+}
+
+const loadClientsCached = cacheByTenant("clients", runLoadClients);
+
+export async function loadClients() {
+  const tenantId = await resolveTenantId();
+  if (!tenantId || !process.env.DATABASE_URL) return [];
+  return loadClientsCached(tenantId);
+}
+
+export type ClientRecord = Awaited<ReturnType<typeof loadClients>>[number];
+
 export type CashFlowSheetPayload = CashFlowSheetViewModel;
 export type ScenarioRecord = Awaited<ReturnType<typeof loadScenarios>>[number];
 export type PayrollParamsRecord = NonNullable<Awaited<ReturnType<typeof loadLatestPayrollParams>>>;
 export type LegalParamsRecord = NonNullable<Awaited<ReturnType<typeof loadLatestLegalParams>>>;
+export type TenantProfileRecord = NonNullable<Awaited<ReturnType<typeof loadTenantProfile>>>;
+export type CashFlowSettingsRecord = NonNullable<Awaited<ReturnType<typeof loadCashFlowSettings>>>;

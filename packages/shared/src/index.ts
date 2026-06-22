@@ -101,6 +101,28 @@ export const payrollPrestacionesUpdateSchema = z.object({
 });
 export type PayrollPrestacionesUpdateInput = z.infer<typeof payrollPrestacionesUpdateSchema>;
 
+/** SMMLV, UVT y auxilio de transporte; valores en pesos COP enteros. */
+export const payrollSalaryBaseUpdateSchema = z.object({
+  id: uuidSchema,
+  smmlv: z.number().int().finite().positive(),
+  uvt: z.number().int().finite().positive(),
+  transportAidMonthly: z.number().int().finite().min(0),
+});
+export type PayrollSalaryBaseUpdateInput = z.infer<typeof payrollSalaryBaseUpdateSchema>;
+
+/** Datos del negocio: nombre y sector del tenant. */
+export const tenantBusinessProfileUpdateSchema = z.object({
+  name: z.string().min(1).max(200),
+  sector: z.string().min(1).max(120),
+});
+export type TenantBusinessProfileUpdateInput = z.infer<typeof tenantBusinessProfileUpdateSchema>;
+
+/** Colchón mínimo de caja: fracción 0–1 (ej. 0.10 = 10%). */
+export const cashFlowBufferUpdateSchema = z.object({
+  minCashBufferPct: z.number().finite().min(0).max(1),
+});
+export type CashFlowBufferUpdateInput = z.infer<typeof cashFlowBufferUpdateSchema>;
+
 /** Actualización de celdas editables del flujo de caja (plantilla Excel). */
 export const cashFlowSheetPatchSchema = z.object({
   startYm: z.string().regex(/^\d{4}-\d{2}$/).optional(),
@@ -143,3 +165,4 @@ export * from "./payroll.js";
 export * from "./cash-flow-sheet.js";
 export * from "./cartera-receivable-math.js";
 export * from "./cartera-invoice-ref.js";
+export * from "./business-categories.js";

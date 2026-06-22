@@ -99,7 +99,8 @@ export function CopAmountInput({
       value={focused ? text : formatCopPlain(safe)}
       onFocus={() => {
         setFocused(true);
-        setText(formatCopPlain(safe));
+        // Si el valor es 0, mostrar vacío para que el usuario empiece a escribir directamente
+        setText(safe === 0 ? "" : formatCopPlain(safe));
       }}
       onBlur={() => {
         setFocused(false);

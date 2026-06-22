@@ -12,7 +12,6 @@ import { dataTable as dt } from "@/lib/data-table-classes";
 type ValueField = keyof Pick<
   LegalParamsRecord,
   | "effectiveFrom"
-  | "initialCashBalance"
   | "employeeCount"
   | "averageMonthlySalaryCop"
   | "generalVatRatePct"
@@ -24,7 +23,6 @@ type ValueField = keyof Pick<
 
 const ROWS: { field: ValueField; concepto: string; kind: "date" | "int" | "money" | "percent" }[] = [
   { field: "effectiveFrom", concepto: "Vigente desde", kind: "date" },
-  { field: "initialCashBalance", concepto: "Saldo inicial de caja (COP)", kind: "money" },
   { field: "employeeCount", concepto: "Número de empleados", kind: "int" },
   { field: "averageMonthlySalaryCop", concepto: "Salario promedio mensual (COP)", kind: "money" },
   { field: "generalVatRatePct", concepto: "Tarifa IVA general", kind: "percent" },
@@ -50,7 +48,6 @@ type FormValues = Record<ValueField, string>;
 function toFormValues(legal: LegalParamsRecord): FormValues {
   return {
     effectiveFrom: legal.effectiveFrom,
-    initialCashBalance: String(legal.initialCashBalance),
     employeeCount: String(legal.employeeCount),
     averageMonthlySalaryCop: String(legal.averageMonthlySalaryCop),
     generalVatRatePct: fractionToPercentString(legal.generalVatRatePct),
@@ -79,7 +76,6 @@ export function LegalParametersTable({ legal }: { legal: LegalParamsRecord }) {
   }, [
     legal.id,
     legal.effectiveFrom,
-    String(legal.initialCashBalance),
     legal.employeeCount,
     String(legal.averageMonthlySalaryCop),
     String(legal.generalVatRatePct ?? ""),
@@ -100,7 +96,8 @@ export function LegalParametersTable({ legal }: { legal: LegalParamsRecord }) {
       const payload = {
         id: legal.id,
         effectiveFrom: values.effectiveFrom.trim(),
-        initialCashBalance: Number(values.initialCashBalance.replace(/\s/g, "").replace(",", ".")),
+        // initialCashBalance se gestiona en Supuestos → Saldo en caja/banco
+        initialCashBalance: Number(legal.initialCashBalance),
         employeeCount: Number.parseInt(values.employeeCount.replace(/\s/g, ""), 10),
         averageMonthlySalaryCop: Number(values.averageMonthlySalaryCop.replace(/\s/g, "").replace(",", ".")),
         generalVatRatePct: Number(values.generalVatRatePct.replace(",", ".")),

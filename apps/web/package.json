@@ -3,9 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --turbopack --port 3001",
+    "dev": "next dev --turbopack --port 3000",
     "build": "next build --turbopack",
-    "start": "next start --port 3001",
+    "start": "next start --port 3000",
     "lint": "eslint"
   },
   "dependencies": {
@@ -21,6 +21,7 @@
     "pusher": "^5.3.3",
     "pusher-js": "^8.5.0",
     "react": "19.1.0",
+    "react-day-picker": "^10.0.1",
     "react-dom": "19.1.0",
     "recharts": "^3.8.1",
     "server-only": "^0.0.1",

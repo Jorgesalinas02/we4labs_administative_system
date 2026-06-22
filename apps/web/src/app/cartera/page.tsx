@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 import {
   CASH_FLOW_DEFAULT_START_YM,
   cashFlowMonthLabelEs,

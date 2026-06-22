@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 import { loadClients } from "@/lib/data";
 import { ClientsView } from "@/components/clients-view";
 

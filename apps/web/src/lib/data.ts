@@ -104,7 +104,7 @@ async function runLoadDashboard(tenantId: string) {
       const cat = allCategories.find((c) => c.code === e.categoryCode);
       return {
         id: e.id,
-        categoryName: cat?.name ?? e.categoryCode,
+        categoryName: cat?.label ?? e.categoryCode,
         kind: incomeKinds.has(e.categoryCode) ? ("income" as const) : ("expense" as const),
         amount: Number(e.amount),
         occurredOn: e.occurredOn,

@@ -2,5 +2,5 @@
   "buildCommand": "pnpm --filter @we4labs/db build && pnpm --filter @we4labs/shared build && pnpm --filter @we4labs/web build",
   "outputDirectory": "apps/web/.next",
   "installCommand": "pnpm install",
-  "framework": "nextjs"
+  "framework": null
 }

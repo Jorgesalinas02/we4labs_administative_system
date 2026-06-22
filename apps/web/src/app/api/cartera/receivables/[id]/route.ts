@@ -11,6 +11,7 @@ import { getSql } from "@/lib/db";
 import { legalParamsToCarteraRates } from "@/lib/cartera-rates";
 import { loadLatestLegalParams } from "@/lib/data";
 import { resolveTenantId } from "@/lib/tenant";
+import { requireAdminAccess } from "@/lib/access";
 import { revalidatePath } from "next/cache";
 
 export const runtime = "nodejs";
@@ -29,6 +30,8 @@ function num(v: string | null | undefined): number {
 }
 
 export async function PATCH(req: Request, context: { params: Promise<{ id: string }> }) {
+  const admin = await requireAdminAccess();
+  if (!admin.ok) return admin.response;
   const tenantId = await resolveTenantId();
   if (!tenantId || !process.env.DATABASE_URL) {
     return NextResponse.json({ error: "Sin tenant o base de datos" }, { status: 400 });
@@ -138,6 +141,8 @@ export async function PATCH(req: Request, context: { params: Promise<{ id: strin
 }
 
 export async function PUT(req: Request, context: { params: Promise<{ id: string }> }) {
+  const admin = await requireAdminAccess();
+  if (!admin.ok) return admin.response;
   const tenantId = await resolveTenantId();
   if (!tenantId || !process.env.DATABASE_URL) {
     return NextResponse.json({ error: "Sin tenant o base de datos" }, { status: 400 });
@@ -228,6 +233,8 @@ export async function PUT(req: Request, context: { params: Promise<{ id: string 
 }
 
 export async function DELETE(_req: Request, context: { params: Promise<{ id: string }> }) {
+  const admin = await requireAdminAccess();
+  if (!admin.ok) return admin.response;
   const tenantId = await resolveTenantId();
   if (!tenantId || !process.env.DATABASE_URL) {
     return NextResponse.json({ error: "Sin tenant o base de datos" }, { status: 400 });

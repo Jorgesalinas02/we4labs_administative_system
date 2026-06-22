@@ -11,6 +11,7 @@ import { getSql } from "@/lib/db";
 import { legalParamsToCarteraRates } from "@/lib/cartera-rates";
 import { loadLatestLegalParams } from "@/lib/data";
 import { resolveTenantId } from "@/lib/tenant";
+import { requireAdminAccess } from "@/lib/access";
 import { revalidatePath } from "next/cache";
 
 export const runtime = "nodejs";
@@ -32,6 +33,8 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
+  const admin = await requireAdminAccess();
+  if (!admin.ok) return admin.response;
   const tenantId = await resolveTenantId();
   if (!tenantId || !process.env.DATABASE_URL) {
     return NextResponse.json({ error: "Sin tenant o base de datos" }, { status: 400 });

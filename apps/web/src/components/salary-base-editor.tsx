@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { payrollSalaryBaseUpdateSchema } from "@we4labs/shared";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useRole } from "@/components/role-provider";
 import type { PayrollParamsRecord } from "@/lib/data";
 
 type FormValues = { smmlv: string; uvt: string; transportAidMonthly: string };
@@ -31,6 +32,7 @@ function toFormValues(p: PayrollParamsRecord): FormValues {
 
 export function SalaryBaseEditor({ payroll }: { payroll: PayrollParamsRecord }) {
   const router = useRouter();
+  const { isAdmin } = useRole();
   const [values, setValues] = useState<FormValues>(() => toFormValues(payroll));
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -122,9 +124,11 @@ export function SalaryBaseEditor({ payroll }: { payroll: PayrollParamsRecord }) 
         <p className="text-sm text-emerald-600 dark:text-emerald-400">Guardado correctamente.</p>
       )}
 
-      <Button type="button" onClick={() => void save()} disabled={saving}>
-        {saving ? "Guardando…" : "Guardar cambios"}
-      </Button>
+      {isAdmin && (
+        <Button type="button" onClick={() => void save()} disabled={saving}>
+          {saving ? "Guardando…" : "Guardar cambios"}
+        </Button>
+      )}
 
       <p className="text-xs text-zinc-400 dark:text-zinc-500">
         Vigente desde: {payroll.effectiveFrom}. Estos valores se usan en la calculadora de nómina y

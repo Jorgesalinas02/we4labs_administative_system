@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import type { CarteraReceivableRates } from "@we4labs/shared";
 import { CarteraReceivableFormModal } from "@/components/cartera-receivable-form-modal";
 import { Button } from "@/components/ui/button";
+import { useRole } from "@/components/role-provider";
 
 export function CarteraNewInvoiceButton({
   rates,
@@ -14,7 +15,10 @@ export function CarteraNewInvoiceButton({
   todayYmd: string;
 }) {
   const router = useRouter();
+  const { isAdmin } = useRole();
   const [open, setOpen] = useState(false);
+
+  if (!isAdmin) return null;
 
   return (
     <>

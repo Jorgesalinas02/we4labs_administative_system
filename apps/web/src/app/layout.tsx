@@ -4,8 +4,9 @@ import { ClerkProvider } from "@clerk/nextjs";
 import "./globals.css";
 import { ConditionalShell } from "@/components/conditional-shell";
 import { AccessDeniedScreen } from "@/components/access-denied-screen";
+import { RoleProvider } from "@/components/role-provider";
 import { resolveTenantId } from "@/lib/tenant";
-import { checkEmailAccess, getCurrentUserEmail } from "@/lib/access";
+import { checkEmailAccess, getCurrentUserEmail, resolveUserRole } from "@/lib/access";
 
 const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
 const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
@@ -23,6 +24,7 @@ export default async function RootLayout({
   const email = await getCurrentUserEmail();
   const allowed = await checkEmailAccess(email);
   const tenantId = allowed ? await resolveTenantId() : null;
+  const role = allowed ? await resolveUserRole() : null;
 
   return (
     <ClerkProvider>
@@ -31,7 +33,9 @@ export default async function RootLayout({
           {!allowed && email ? (
             <AccessDeniedScreen email={email} />
           ) : (
-            <ConditionalShell tenantId={tenantId}>{children}</ConditionalShell>
+            <RoleProvider role={role}>
+              <ConditionalShell tenantId={tenantId}>{children}</ConditionalShell>
+            </RoleProvider>
           )}
         </body>
       </html>

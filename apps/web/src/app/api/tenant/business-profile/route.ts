@@ -5,12 +5,15 @@ import { eq } from "drizzle-orm";
 import { getSql } from "@/lib/db";
 import { revalidateSupuestosPage } from "@/lib/revalidate-data";
 import { resolveTenantId } from "@/lib/tenant";
+import { requireAdminAccess } from "@/lib/access";
 import { drizzle } from "drizzle-orm/postgres-js";
 import * as schema from "@we4labs/db";
 
 export const runtime = "nodejs";
 
 export async function PATCH(req: Request) {
+  const admin = await requireAdminAccess();
+  if (!admin.ok) return admin.response;
   const tenantId = await resolveTenantId();
   if (!tenantId || !process.env.DATABASE_URL) {
     return NextResponse.json({ error: "Sin tenant o base de datos" }, { status: 400 });

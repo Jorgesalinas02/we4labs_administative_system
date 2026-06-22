@@ -2,6 +2,14 @@ import { z } from "zod";
 
 export const uuidSchema = z.string().uuid();
 
+/** Roles de acceso al sistema. "admin": total; "consultor": solo lectura. */
+export const USER_ROLES = ["admin", "consultor"] as const;
+export type UserRole = (typeof USER_ROLES)[number];
+export const userRoleSchema = z.enum(USER_ROLES);
+export function isUserRole(value: unknown): value is UserRole {
+  return typeof value === "string" && (USER_ROLES as readonly string[]).includes(value);
+}
+
 export const scenarioSchema = z.object({
   id: uuidSchema.optional(),
   name: z.string().min(1).max(200),

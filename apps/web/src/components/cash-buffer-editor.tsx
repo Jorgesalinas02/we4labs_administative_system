@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { cashFlowBufferUpdateSchema } from "@we4labs/shared";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useRole } from "@/components/role-provider";
 import type { CashFlowSettingsRecord } from "@/lib/data";
 
 export function CashBufferEditor({
@@ -15,6 +16,7 @@ export function CashBufferEditor({
   saldoInicial?: number | null;
 }) {
   const router = useRouter();
+  const { isAdmin } = useRole();
 
   // ── Saldo inicial ──────────────────────────────────────────────────────────
   const [balance, setBalance] = useState<string>(
@@ -117,16 +119,19 @@ export function CashBufferEditor({
               value={balance}
               onChange={(e) => { setBalance(e.target.value); setBalanceOk(false); }}
               onKeyDown={(e) => { if (e.key === "Enter") void saveBalance(); }}
+              readOnly={!isAdmin}
             />
-            <Button
-              type="button"
-              size="sm"
-              variant="outline"
-              onClick={() => void saveBalance()}
-              disabled={savingBalance}
-            >
-              {savingBalance ? "…" : "Guardar"}
-            </Button>
+            {isAdmin && (
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() => void saveBalance()}
+                disabled={savingBalance}
+              >
+                {savingBalance ? "…" : "Guardar"}
+              </Button>
+            )}
           </div>
           <p className="text-xs text-zinc-400">
             Dinero disponible en caja o banco al inicio del período del flujo de caja.
@@ -152,17 +157,20 @@ export function CashBufferEditor({
               value={bufferPct}
               onChange={(e) => { setBufferPct(e.target.value); setBufferOk(false); }}
               onKeyDown={(e) => { if (e.key === "Enter") void saveBuffer(); }}
+              readOnly={!isAdmin}
             />
             <span className="shrink-0 text-xs text-zinc-500">%</span>
-            <Button
-              type="button"
-              size="sm"
-              variant="outline"
-              onClick={() => void saveBuffer()}
-              disabled={savingBuffer}
-            >
-              {savingBuffer ? "…" : "Guardar"}
-            </Button>
+            {isAdmin && (
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() => void saveBuffer()}
+                disabled={savingBuffer}
+              >
+                {savingBuffer ? "…" : "Guardar"}
+              </Button>
+            )}
           </div>
           <p className="text-xs text-zinc-400">
             Ejemplo: 10 % significa que debes mantener al menos el 10 % de los egresos mensuales

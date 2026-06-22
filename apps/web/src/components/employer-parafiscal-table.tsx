@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import type { PayrollParamsRecord } from "@/lib/data";
 import { cn } from "@/lib/cn";
 import { dataTable as dt } from "@/lib/data-table-classes";
+import { useRole } from "@/components/role-provider";
 
 type EmployerField = keyof Pick<
   PayrollParamsRecord,
@@ -55,6 +56,7 @@ function refText(refs: Record<string, string> | null, field: EmployerField): str
 
 export function EmployerParafiscalTable({ payroll }: { payroll: PayrollParamsRecord }) {
   const router = useRouter();
+  const { isAdmin } = useRole();
   const [values, setValues] = useState<FormValues>(() => toFormValues(payroll));
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -168,9 +170,11 @@ export function EmployerParafiscalTable({ payroll }: { payroll: PayrollParamsRec
         </table>
       </div>
       {err && <p className="text-sm text-red-600 dark:text-red-400">{err}</p>}
-      <Button type="button" onClick={() => void save()} disabled={saving}>
-        {saving ? "Guardando…" : "Guardar cambios"}
-      </Button>
+      {isAdmin && (
+        <Button type="button" onClick={() => void save()} disabled={saving}>
+          {saving ? "Guardando…" : "Guardar cambios"}
+        </Button>
+      )}
     </div>
   );
 }

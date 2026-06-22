@@ -17,6 +17,7 @@ import {
 import { UserButton } from "@clerk/nextjs";
 import { cn } from "@/lib/cn";
 import { PusherAlerts } from "@/components/pusher-alerts";
+import { useRole } from "@/components/role-provider";
 
 const nav = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -28,7 +29,8 @@ const nav = [
   { href: "/calendario-tributario", label: "Calendario tributario", icon: CalendarDays },
   { href: "/guia-obligaciones", label: "Guía obligaciones", icon: BookOpen },
   { href: "/nomina", label: "Nómina", icon: Calculator },
-  { href: "/configuracion", label: "Configuración", icon: Settings },
+  // Gestión de usuarios: solo admins (ver `adminOnly`).
+  { href: "/configuracion", label: "Usuarios", icon: Settings, adminOnly: true },
 ];
 
 export function AppShell({
@@ -39,6 +41,8 @@ export function AppShell({
   tenantId?: string | null;
 }) {
   const pathname = usePathname() ?? "";
+  const { isAdmin } = useRole();
+  const visibleNav = nav.filter((item) => !item.adminOnly || isAdmin);
   return (
     <div className="min-h-screen overflow-x-hidden bg-zinc-50 dark:bg-zinc-950">
       <PusherAlerts tenantId={tenantId ?? null} />
@@ -66,7 +70,7 @@ export function AppShell({
             />
           </div>
           <nav className="flex flex-row gap-1 overflow-x-auto px-2 pb-3 md:flex-col md:overflow-x-visible md:px-3">
-            {nav.map(({ href, label, icon: Icon }) => (
+            {visibleNav.map(({ href, label, icon: Icon }) => (
               <Link
                 key={href}
                 href={href}

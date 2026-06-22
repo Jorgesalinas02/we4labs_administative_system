@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import type { LegalParamsRecord } from "@/lib/data";
 import { cn } from "@/lib/cn";
 import { dataTable as dt } from "@/lib/data-table-classes";
+import { useRole } from "@/components/role-provider";
 
 type ValueField = keyof Pick<
   LegalParamsRecord,
@@ -65,6 +66,7 @@ function refText(refs: Record<string, string> | null, field: ValueField): string
 
 export function LegalParametersTable({ legal }: { legal: LegalParamsRecord }) {
   const router = useRouter();
+  const { isAdmin } = useRole();
   const [values, setValues] = useState<FormValues>(() => toFormValues(legal));
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -208,9 +210,11 @@ export function LegalParametersTable({ legal }: { legal: LegalParamsRecord }) {
         <p className="text-xs text-zinc-500 dark:text-zinc-400">{legal.notes}</p>
       )}
       {err && <p className="text-sm text-red-600 dark:text-red-400">{err}</p>}
-      <Button type="button" onClick={() => void save()} disabled={saving}>
-        {saving ? "Guardando…" : "Guardar cambios"}
-      </Button>
+      {isAdmin && (
+        <Button type="button" onClick={() => void save()} disabled={saving}>
+          {saving ? "Guardando…" : "Guardar cambios"}
+        </Button>
+      )}
     </div>
   );
 }

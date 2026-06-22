@@ -6,6 +6,7 @@ import { CopAmountInput } from "@/components/cop-amount-input";
 import { Button } from "@/components/ui/button";
 import { carteraBalancePending, carteraNum, formatCarteraCop } from "@/lib/cartera-metrics";
 import { cn } from "@/lib/cn";
+import { useRole } from "@/components/role-provider";
 import type { CarteraPortfolioRow } from "@/components/cartera-receivables-table";
 
 function labelCls() {
@@ -28,6 +29,7 @@ export function CarteraInvoicePaymentButton({
   cashFlowMonthLabels: string[];
 }) {
   const router = useRouter();
+  const { isAdmin } = useRole();
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -122,7 +124,7 @@ export function CarteraInvoicePaymentButton({
     }
   }
 
-  if (rows.length === 0) {
+  if (!isAdmin || rows.length === 0) {
     return null;
   }
 

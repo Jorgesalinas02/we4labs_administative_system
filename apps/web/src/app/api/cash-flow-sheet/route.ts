@@ -15,6 +15,7 @@ import { getSql } from "@/lib/db";
 import { loadCashFlowSheet } from "@/lib/data";
 import { revalidateCashRelatedPages } from "@/lib/revalidate-data";
 import { resolveTenantId } from "@/lib/tenant";
+import { requireAdminAccess } from "@/lib/access";
 
 export const runtime = "nodejs";
 
@@ -33,6 +34,8 @@ export async function GET() {
 }
 
 export async function PATCH(req: Request) {
+  const admin = await requireAdminAccess();
+  if (!admin.ok) return admin.response;
   const tenantId = await resolveTenantId();
   if (!tenantId || !process.env.DATABASE_URL) {
     return NextResponse.json({ error: "Sin tenant o base de datos" }, { status: 400 });

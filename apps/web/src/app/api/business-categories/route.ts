@@ -4,6 +4,7 @@ import { ALL_CATEGORIES_CATALOG } from "@we4labs/shared";
 import { and, eq } from "drizzle-orm";
 import { getSql } from "@/lib/db";
 import { resolveTenantId } from "@/lib/tenant";
+import { requireAdminAccess } from "@/lib/access";
 import { revalidatePath } from "next/cache";
 
 export const runtime = "nodejs";
@@ -35,6 +36,8 @@ function slugify(text: string): string {
 }
 
 export async function POST(req: Request) {
+  const admin = await requireAdminAccess();
+  if (!admin.ok) return admin.response;
   const tenantId = await resolveTenantId();
   if (!tenantId || !process.env.DATABASE_URL) {
     return NextResponse.json({ error: "Sin tenant o base de datos" }, { status: 400 });
@@ -121,6 +124,8 @@ export async function POST(req: Request) {
 }
 
 export async function DELETE(req: Request) {
+  const admin = await requireAdminAccess();
+  if (!admin.ok) return admin.response;
   const tenantId = await resolveTenantId();
   if (!tenantId || !process.env.DATABASE_URL) {
     return NextResponse.json({ error: "Sin tenant o base de datos" }, { status: 400 });

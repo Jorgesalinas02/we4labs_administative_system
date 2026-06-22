@@ -1,16 +1,15 @@
 export const dynamic = "force-dynamic";
 import { redirect } from "next/navigation";
 import { ConfiguracionView } from "@/components/configuracion-view";
-import { getCurrentUserEmail, checkEmailAccess } from "@/lib/access";
+import { getCurrentUserEmail, isDevBypass, resolveUserRole } from "@/lib/access";
 import { loadEmailAllowlist } from "@/lib/data";
 
 export default async function ConfiguracionPage() {
-  const email = await getCurrentUserEmail();
-  if (!email) redirect("/sign-in");
+  // Solo administradores pueden gestionar usuarios.
+  const role = await resolveUserRole();
+  if (role !== "admin") redirect("/dashboard");
 
-  const allowed = await checkEmailAccess(email);
-  if (!allowed) redirect("/sign-in");
-
+  const email = (await getCurrentUserEmail()) ?? (isDevBypass() ? "dev@local" : "");
   const emails = await loadEmailAllowlist();
 
   return <ConfiguracionView initialEmails={emails} currentEmail={email} />;

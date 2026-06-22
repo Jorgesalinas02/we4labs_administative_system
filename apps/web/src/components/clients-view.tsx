@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import type { ClientRecord } from "@/lib/data";
 import { cn } from "@/lib/cn";
+import { useRole } from "@/components/role-provider";
 import { Plus, Pencil, Trash2, X, Building2, User, Landmark, HelpCircle } from "lucide-react";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -224,6 +225,7 @@ type Modal =
 
 export function ClientsView({ initialClients }: { initialClients: ClientRecord[] }) {
   const router = useRouter();
+  const { isAdmin } = useRole();
   const [clientsList, setClientsList] = useState<ClientRecord[]>(initialClients);
   const [modal, setModal] = useState<Modal | null>(null);
   const [search, setSearch] = useState("");
@@ -299,13 +301,15 @@ export function ClientsView({ initialClients }: { initialClients: ClientRecord[]
           onChange={(e) => setSearch(e.target.value)}
           className="h-9 flex-1 rounded-md border border-zinc-200 bg-white px-3 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-400 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 max-w-xs"
         />
-        <button
-          onClick={() => setModal({ kind: "create" })}
-          className="flex items-center gap-1.5 rounded-md bg-zinc-900 px-3 py-2 text-sm font-medium text-white hover:bg-zinc-700 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
-        >
-          <Plus className="h-4 w-4" />
-          Nuevo cliente
-        </button>
+        {isAdmin && (
+          <button
+            onClick={() => setModal({ kind: "create" })}
+            className="flex items-center gap-1.5 rounded-md bg-zinc-900 px-3 py-2 text-sm font-medium text-white hover:bg-zinc-700 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
+          >
+            <Plus className="h-4 w-4" />
+            Nuevo cliente
+          </button>
+        )}
       </div>
 
       {/* Table */}
@@ -364,25 +368,27 @@ export function ClientsView({ initialClients }: { initialClients: ClientRecord[]
                     {c.notes ?? <span className="text-zinc-300 dark:text-zinc-600">—</span>}
                   </td>
                   <td className="px-4 py-3">
-                    <div className="flex items-center justify-end gap-1 opacity-0 transition-opacity group-hover:opacity-100">
-                      <button
-                        onClick={() =>
-                          setModal({
-                            kind: "edit",
-                            client: c,
-                          })
-                        }
-                        className="rounded p-1.5 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700 dark:hover:bg-zinc-800 dark:hover:text-zinc-200"
-                      >
-                        <Pencil className="h-3.5 w-3.5" />
-                      </button>
-                      <button
-                        onClick={() => setModal({ kind: "delete", client: c })}
-                        className="rounded p-1.5 text-zinc-400 hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-950/30 dark:hover:text-red-400"
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </button>
-                    </div>
+                    {isAdmin && (
+                      <div className="flex items-center justify-end gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+                        <button
+                          onClick={() =>
+                            setModal({
+                              kind: "edit",
+                              client: c,
+                            })
+                          }
+                          className="rounded p-1.5 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700 dark:hover:bg-zinc-800 dark:hover:text-zinc-200"
+                        >
+                          <Pencil className="h-3.5 w-3.5" />
+                        </button>
+                        <button
+                          onClick={() => setModal({ kind: "delete", client: c })}
+                          className="rounded p-1.5 text-zinc-400 hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-950/30 dark:hover:text-red-400"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    )}
                   </td>
                 </tr>
               ))}

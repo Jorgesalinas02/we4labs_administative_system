@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { tenantBusinessProfileUpdateSchema } from "@we4labs/shared";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useRole } from "@/components/role-provider";
 import type { TenantProfileRecord } from "@/lib/data";
 
 const SECTORES = [
@@ -26,6 +27,7 @@ const SECTORES = [
 
 export function BusinessProfileEditor({ tenant }: { tenant: TenantProfileRecord }) {
   const router = useRouter();
+  const { isAdmin } = useRole();
   const [name, setName] = useState(tenant.name);
   const [sector, setSector] = useState(tenant.sector ?? "");
   const [saving, setSaving] = useState(false);
@@ -110,9 +112,11 @@ export function BusinessProfileEditor({ tenant }: { tenant: TenantProfileRecord 
         <p className="text-sm text-emerald-600 dark:text-emerald-400">Guardado correctamente.</p>
       )}
 
-      <Button type="button" onClick={() => void save()} disabled={saving || !name || !sector}>
-        {saving ? "Guardando…" : "Guardar"}
-      </Button>
+      {isAdmin && (
+        <Button type="button" onClick={() => void save()} disabled={saving || !name || !sector}>
+          {saving ? "Guardando…" : "Guardar"}
+        </Button>
+      )}
     </div>
   );
 }

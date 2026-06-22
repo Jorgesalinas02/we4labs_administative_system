@@ -23,11 +23,13 @@ export const tenants = pgTable("tenants", {
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
 });
 
-/** Lista blanca de correos autorizados a ingresar al sistema. */
+/** Lista blanca de correos autorizados a ingresar al sistema, con su rol de acceso. */
 export const emailAllowlist = pgTable("email_allowlist", {
   id: uuid("id").primaryKey().defaultRandom(),
   email: varchar("email", { length: 320 }).notNull().unique(),
   addedBy: varchar("added_by", { length: 320 }),
+  /** Rol de acceso: "admin" (total) | "consultor" (solo lectura). */
+  role: varchar("role", { length: 32 }).notNull().default("consultor"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
 });
 

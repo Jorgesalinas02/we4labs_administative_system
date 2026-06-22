@@ -9,6 +9,7 @@ import { CASH_FLOW_DEFAULT_START_YM, cashFlowMonthPeriods } from "@we4labs/share
 import { and, eq, inArray } from "drizzle-orm";
 import { getSql } from "@/lib/db";
 import { resolveTenantId } from "@/lib/tenant";
+import { requireAdminAccess } from "@/lib/access";
 import { revalidatePath } from "next/cache";
 
 export const runtime = "nodejs";
@@ -52,6 +53,8 @@ export async function GET() {
 }
 
 export async function PATCH(req: Request) {
+  const admin = await requireAdminAccess();
+  if (!admin.ok) return admin.response;
   const tenantId = await resolveTenantId();
   if (!tenantId || !process.env.DATABASE_URL) {
     return NextResponse.json({ error: "Sin tenant o base de datos" }, { status: 400 });

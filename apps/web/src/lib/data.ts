@@ -25,6 +25,8 @@ import {
   cashFlowMonthLabelEs,
   cashFlowMonthPeriods,
   computeCashFlowSheet,
+  isUserRole,
+  type UserRole,
 } from "@we4labs/shared";
 import { cacheByTenant } from "./data-cache";
 import { getSql, getDb } from "./db";
@@ -576,6 +578,41 @@ export async function isEmailAllowed(email: string): Promise<boolean> {
   if (all.length === 0) return false;
 
   return all.some((r) => r.email.toLowerCase() === normalized);
+}
+
+/**
+ * Devuelve el rol del correo, o null si no está autorizado.
+ * INITIAL_ADMIN_EMAIL siempre es "admin" (bootstrap). Sin DATABASE_URL ⇒ "admin" (dev).
+ */
+export async function getUserRole(email: string): Promise<UserRole | null> {
+  if (!process.env.DATABASE_URL) return "admin";
+
+  const normalized = email.trim().toLowerCase();
+  if (!normalized) return null;
+
+  const bootstrap = process.env.INITIAL_ADMIN_EMAIL?.trim().toLowerCase();
+  if (bootstrap && normalized === bootstrap) return "admin";
+
+  const db = getDb();
+  const [row] = await db
+    .select({ role: emailAllowlist.role })
+    .from(emailAllowlist)
+    .where(eq(emailAllowlist.email, normalized))
+    .limit(1);
+
+  if (!row) return null;
+  return isUserRole(row.role) ? row.role : "consultor";
+}
+
+/** Actualiza el rol de un usuario de la lista. Devuelve el registro actualizado o null. */
+export async function updateUserRole(id: string, role: UserRole) {
+  const db = getDb();
+  const [updated] = await db
+    .update(emailAllowlist)
+    .set({ role })
+    .where(eq(emailAllowlist.id, id))
+    .returning();
+  return updated ?? null;
 }
 
 export type EmailAllowlistRecord = Awaited<ReturnType<typeof loadEmailAllowlist>>[number];

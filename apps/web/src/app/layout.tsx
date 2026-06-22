@@ -2,8 +2,10 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { ClerkProvider } from "@clerk/nextjs";
 import "./globals.css";
-import { AppShell } from "@/components/app-shell";
+import { ConditionalShell } from "@/components/conditional-shell";
+import { AccessDeniedScreen } from "@/components/access-denied-screen";
 import { resolveTenantId } from "@/lib/tenant";
+import { checkEmailAccess, getCurrentUserEmail } from "@/lib/access";
 
 const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
 const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
@@ -18,12 +20,19 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const tenantId = await resolveTenantId();
+  const email = await getCurrentUserEmail();
+  const allowed = await checkEmailAccess(email);
+  const tenantId = allowed ? await resolveTenantId() : null;
+
   return (
     <ClerkProvider>
       <html lang="es">
         <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-          <AppShell tenantId={tenantId}>{children}</AppShell>
+          {!allowed && email ? (
+            <AccessDeniedScreen email={email} />
+          ) : (
+            <ConditionalShell tenantId={tenantId}>{children}</ConditionalShell>
+          )}
         </body>
       </html>
     </ClerkProvider>

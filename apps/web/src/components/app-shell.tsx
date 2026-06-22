@@ -12,6 +12,7 @@ import {
   Landmark,
   TrendingUp,
   Users,
+  Settings,
 } from "lucide-react";
 import { UserButton } from "@clerk/nextjs";
 import { cn } from "@/lib/cn";
@@ -27,6 +28,7 @@ const nav = [
   { href: "/calendario-tributario", label: "Calendario tributario", icon: CalendarDays },
   { href: "/guia-obligaciones", label: "Guía obligaciones", icon: BookOpen },
   { href: "/nomina", label: "Nómina", icon: Calculator },
+  { href: "/configuracion", label: "Configuración", icon: Settings },
 ];
 
 export function AppShell({

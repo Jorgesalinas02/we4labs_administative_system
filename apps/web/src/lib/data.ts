@@ -16,6 +16,7 @@ import {
   businessCategories,
   cashFlowEntries,
   clients,
+  emailAllowlist,
 } from "@we4labs/db";
 import {
   CASH_FLOW_DEFAULT_START_YM,
@@ -545,3 +546,36 @@ export type PayrollParamsRecord = NonNullable<Awaited<ReturnType<typeof loadLate
 export type LegalParamsRecord = NonNullable<Awaited<ReturnType<typeof loadLatestLegalParams>>>;
 export type TenantProfileRecord = NonNullable<Awaited<ReturnType<typeof loadTenantProfile>>>;
 export type CashFlowSettingsRecord = NonNullable<Awaited<ReturnType<typeof loadCashFlowSettings>>>;
+
+// ── Email Allowlist ──────────────────────────────────────────────────────────
+
+export async function loadEmailAllowlist() {
+  if (!process.env.DATABASE_URL) return [];
+  const db = getDb();
+  return db
+    .select()
+    .from(emailAllowlist)
+    .orderBy(asc(emailAllowlist.createdAt));
+}
+
+/**
+ * Returns true if the email is allowed to access the system.
+ * Solo correos en email_allowlist (+ INITIAL_ADMIN_EMAIL si está definido).
+ */
+export async function isEmailAllowed(email: string): Promise<boolean> {
+  if (!process.env.DATABASE_URL) return true;
+
+  const normalized = email.trim().toLowerCase();
+  if (!normalized) return false;
+
+  const bootstrap = process.env.INITIAL_ADMIN_EMAIL?.trim().toLowerCase();
+  if (bootstrap && normalized === bootstrap) return true;
+
+  const db = getDb();
+  const all = await db.select({ email: emailAllowlist.email }).from(emailAllowlist);
+  if (all.length === 0) return false;
+
+  return all.some((r) => r.email.toLowerCase() === normalized);
+}
+
+export type EmailAllowlistRecord = Awaited<ReturnType<typeof loadEmailAllowlist>>[number];

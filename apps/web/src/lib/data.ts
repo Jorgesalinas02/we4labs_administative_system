@@ -50,8 +50,8 @@ async function runLoadDashboard(tenantId: string) {
         .select({
           id: taxCalendarEvents.id,
           name: taxObligations.title,
+          title: taxCalendarEvents.title,
           dueOn: taxCalendarEvents.dueOn,
-          status: taxCalendarEvents.status,
         })
         .from(taxCalendarEvents)
         .leftJoin(taxObligations, eq(taxCalendarEvents.taxObligationId, taxObligations.id))
@@ -110,13 +110,12 @@ async function runLoadDashboard(tenantId: string) {
 
     // Próximas obligaciones tributarias (siguientes 5)
     const upcomingObligations = taxEvents
-      .filter((t) => t.dueOn >= today && t.status !== "done")
+      .filter((t) => t.dueOn >= today)
       .slice(0, 5)
       .map((t) => ({
         id: t.id,
-        name: t.name ?? "Obligación tributaria",
+        name: t.name ?? t.title ?? "Obligación tributaria",
         dueOn: t.dueOn,
-        status: t.status,
       }));
 
     // Cartera vencida

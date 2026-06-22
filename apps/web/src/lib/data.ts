@@ -35,7 +35,7 @@ async function runLoadDashboard(tenantId: string) {
     const today = new Date().toISOString().slice(0, 10);
     const currentYm = today.slice(0, 7);
 
-    const [entries, allCategories, portfolio, taxEvents, settingsRows] = await Promise.all([
+    const [entries, allCategories, portfolio, taxEvents, initialBalanceCells] = await Promise.all([
       db
         .select()
         .from(cashFlowEntries)
@@ -57,9 +57,14 @@ async function runLoadDashboard(tenantId: string) {
         .leftJoin(taxObligations, eq(taxCalendarEvents.taxObligationId, taxObligations.id))
         .orderBy(taxCalendarEvents.dueOn),
       db
-        .select()
-        .from(cashFlowSheetSettings)
-        .where(eq(cashFlowSheetSettings.tenantId, tenantId))
+        .select({ amount: cashFlowSheetCells.amount })
+        .from(cashFlowSheetCells)
+        .where(
+          and(
+            eq(cashFlowSheetCells.tenantId, tenantId),
+            eq(cashFlowSheetCells.lineCode, "saldo_inicial_de_caja"),
+          ),
+        )
         .limit(1),
     ]);
 
@@ -90,9 +95,8 @@ async function runLoadDashboard(tenantId: string) {
       monthTotals.set(ym, cur);
     }
 
-    // Saldo inicial de caja
-    const settings = settingsRows[0];
-    const initialBalance = settings ? Number(settings.initialCashBalance ?? 0) : 0;
+    // Saldo inicial de caja (stored in cashFlowSheetCells)
+    const initialBalance = initialBalanceCells[0] ? Number(initialBalanceCells[0].amount) : 0;
     const currentBalance = initialBalance + totalInflow - totalOutflow;
 
     // Últimas 8 transacciones

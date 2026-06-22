@@ -49,7 +49,7 @@ async function runLoadDashboard(tenantId: string) {
       db
         .select({
           id: taxCalendarEvents.id,
-          name: taxObligations.name,
+          name: taxObligations.title,
           dueOn: taxCalendarEvents.dueOn,
           status: taxCalendarEvents.status,
         })

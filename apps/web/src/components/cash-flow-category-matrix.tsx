@@ -346,6 +346,7 @@ function TransactionDetailTable({
   monthLabels,
   onDelete,
 }: TransactionDetailTableProps) {
+  const [filterDate, setFilterDate] = useState("");
   const [filterYm, setFilterYm] = useState("");
   const [filterKind, setFilterKind] = useState<"" | "income" | "expense">("");
   const [filterGroup, setFilterGroup] = useState("");
@@ -389,11 +390,12 @@ function TransactionDetailTable({
   const clientMap = useMemo(() => new Map(clients.map((c) => [c.id, c.name])), [clients]);
   const memberMap = useMemo(() => new Map(teamMembers.map((m) => [m.id, m.name])), [teamMembers]);
 
-  const hasFilters = filterYm || filterKind || filterGroup || filterPerson || filterDesc;
+  const hasFilters = filterDate || filterYm || filterKind || filterGroup || filterPerson || filterDesc;
 
   const filtered = useMemo(() => {
     const descLower = filterDesc.toLowerCase();
     return entries
+      .filter((e) => !filterDate || e.occurredOn === filterDate)
       .filter((e) => !filterYm || e.periodYm === filterYm)
       .filter((e) => !filterKind || categoryMap.get(e.categoryCode)?.kind === filterKind)
       .filter((e) => !filterGroup || categoryMap.get(e.categoryCode)?.parentCode === filterGroup)
@@ -410,7 +412,7 @@ function TransactionDetailTable({
         if (b.periodYm !== a.periodYm) return b.periodYm.localeCompare(a.periodYm);
         return (b.occurredOn ?? "").localeCompare(a.occurredOn ?? "");
       });
-  }, [entries, filterYm, filterKind, filterGroup, filterPerson, filterDesc, categoryMap]);
+  }, [entries, filterDate, filterYm, filterKind, filterGroup, filterPerson, filterDesc, categoryMap]);
 
   const total = filtered.reduce((s, e) => {
     const kind = categoryMap.get(e.categoryCode)?.kind;
@@ -418,7 +420,7 @@ function TransactionDetailTable({
   }, 0);
 
   function clearFilters() {
-    setFilterYm(""); setFilterKind(""); setFilterGroup("");
+    setFilterDate(""); setFilterYm(""); setFilterKind(""); setFilterGroup("");
     setFilterPerson(""); setFilterDesc("");
   }
 
@@ -466,7 +468,14 @@ function TransactionDetailTable({
               </tr>
               {/* Filter row */}
               <tr className="bg-zinc-50/80 dark:bg-zinc-900/60">
-                <td className="border-b border-zinc-200 px-2 py-1.5 dark:border-zinc-800" />
+                <td className="border-b border-zinc-200 px-2 py-1.5 dark:border-zinc-800">
+                  <DatePickerInput
+                    value={filterDate}
+                    onChange={setFilterDate}
+                    placeholder="Filtrar fecha…"
+                    className={filterInputCls}
+                  />
+                </td>
                 <td className="border-b border-zinc-200 px-2 py-1.5 dark:border-zinc-800">
                   <select value={filterYm} onChange={(e) => setFilterYm(e.target.value)} className={filterInputCls}>
                     <option value="">Todos</option>

@@ -469,11 +469,11 @@ function TransactionDetailTable({
               {/* Filter row */}
               <tr className="bg-zinc-50/80 dark:bg-zinc-900/60">
                 <td className="border-b border-zinc-200 px-2 py-1.5 dark:border-zinc-800">
-                  <DatePickerInput
+                  <input
+                    type="date"
                     value={filterDate}
-                    onChange={setFilterDate}
-                    placeholder="Filtrar fecha…"
-                    className={filterInputCls}
+                    onChange={(e) => setFilterDate(e.target.value)}
+                    className={cn(filterInputCls, "cursor-pointer")}
                   />
                 </td>
                 <td className="border-b border-zinc-200 px-2 py-1.5 dark:border-zinc-800">

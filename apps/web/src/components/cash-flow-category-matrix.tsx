@@ -348,38 +348,79 @@ function TransactionDetailTable({
 }: TransactionDetailTableProps) {
   const [filterYm, setFilterYm] = useState("");
   const [filterKind, setFilterKind] = useState<"" | "income" | "expense">("");
+  const [filterGroup, setFilterGroup] = useState("");
+  const [filterPerson, setFilterPerson] = useState("");
+  const [filterDesc, setFilterDesc] = useState("");
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const categoryMap = useMemo(() => {
-    const m = new Map<string, { parentLabel: string; label: string; kind: "income" | "expense" }>();
-    for (const c of incomeCategories) m.set(c.code, { parentLabel: c.parentLabel, label: c.label, kind: "income" });
-    for (const c of expenseCategories) m.set(c.code, { parentLabel: c.parentLabel, label: c.label, kind: "expense" });
+    const m = new Map<string, { parentCode: string; parentLabel: string; label: string; kind: "income" | "expense" }>();
+    for (const c of incomeCategories) m.set(c.code, { parentCode: c.parentCode, parentLabel: c.parentLabel, label: c.label, kind: "income" });
+    for (const c of expenseCategories) m.set(c.code, { parentCode: c.parentCode, parentLabel: c.parentLabel, label: c.label, kind: "expense" });
     return m;
   }, [incomeCategories, expenseCategories]);
+
+  // Unique groups present in entries
+  const availableGroups = useMemo(() => {
+    const seen = new Map<string, string>();
+    for (const e of entries) {
+      const cat = categoryMap.get(e.categoryCode);
+      if (cat && !seen.has(cat.parentCode)) seen.set(cat.parentCode, cat.parentLabel);
+    }
+    return [...seen.entries()].sort((a, b) => a[1].localeCompare(b[1]));
+  }, [entries, categoryMap]);
+
+  // Unique people (clients + team members) present in entries
+  const availablePeople = useMemo(() => {
+    const seen = new Map<string, string>();
+    for (const e of entries) {
+      if (e.clientId) {
+        const name = clients.find((c) => c.id === e.clientId)?.name;
+        if (name) seen.set(e.clientId, name);
+      }
+      if (e.teamMemberId) {
+        const name = teamMembers.find((m) => m.id === e.teamMemberId)?.name;
+        if (name) seen.set(e.teamMemberId, name);
+      }
+    }
+    return [...seen.entries()].sort((a, b) => a[1].localeCompare(b[1]));
+  }, [entries, clients, teamMembers]);
 
   const clientMap = useMemo(() => new Map(clients.map((c) => [c.id, c.name])), [clients]);
   const memberMap = useMemo(() => new Map(teamMembers.map((m) => [m.id, m.name])), [teamMembers]);
 
+  const hasFilters = filterYm || filterKind || filterGroup || filterPerson || filterDesc;
+
   const filtered = useMemo(() => {
+    const descLower = filterDesc.toLowerCase();
     return entries
       .filter((e) => !filterYm || e.periodYm === filterYm)
+      .filter((e) => !filterKind || categoryMap.get(e.categoryCode)?.kind === filterKind)
+      .filter((e) => !filterGroup || categoryMap.get(e.categoryCode)?.parentCode === filterGroup)
       .filter((e) => {
-        if (!filterKind) return true;
-        return categoryMap.get(e.categoryCode)?.kind === filterKind;
+        if (!filterPerson) return true;
+        return e.clientId === filterPerson || e.teamMemberId === filterPerson;
+      })
+      .filter((e) => {
+        if (!descLower) return true;
+        return (e.description ?? "").toLowerCase().includes(descLower);
       })
       .slice()
       .sort((a, b) => {
         if (b.periodYm !== a.periodYm) return b.periodYm.localeCompare(a.periodYm);
-        const da = a.occurredOn ?? "";
-        const db = b.occurredOn ?? "";
-        return db.localeCompare(da);
+        return (b.occurredOn ?? "").localeCompare(a.occurredOn ?? "");
       });
-  }, [entries, filterYm, filterKind, categoryMap]);
+  }, [entries, filterYm, filterKind, filterGroup, filterPerson, filterDesc, categoryMap]);
 
   const total = filtered.reduce((s, e) => {
     const kind = categoryMap.get(e.categoryCode)?.kind;
     return kind === "income" ? s + e.amount : s - e.amount;
   }, 0);
+
+  function clearFilters() {
+    setFilterYm(""); setFilterKind(""); setFilterGroup("");
+    setFilterPerson(""); setFilterDesc("");
+  }
 
   async function handleDelete(id: string) {
     setDeletingId(id);
@@ -387,35 +428,52 @@ function TransactionDetailTable({
     finally { setDeletingId(null); }
   }
 
+  const selectCls = "h-8 rounded-md border border-zinc-200 bg-white px-2 text-xs text-zinc-600 focus:outline-none dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300";
+
   if (entries.length === 0) return null;
 
   return (
     <div className="space-y-3">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 className="text-base font-semibold text-zinc-900 dark:text-zinc-100">
           Detalle de transacciones
         </h2>
-        <div className="flex flex-wrap items-center gap-2">
-          <select
-            value={filterKind}
-            onChange={(e) => setFilterKind(e.target.value as "" | "income" | "expense")}
-            className="h-8 rounded-md border border-zinc-200 bg-white px-2 text-xs text-zinc-600 focus:outline-none dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300"
+        {hasFilters && (
+          <button
+            onClick={clearFilters}
+            className="text-xs text-zinc-400 underline underline-offset-2 hover:text-zinc-600 dark:hover:text-zinc-300"
           >
-            <option value="">Todos los tipos</option>
-            <option value="income">Solo ingresos</option>
-            <option value="expense">Solo egresos</option>
-          </select>
-          <select
-            value={filterYm}
-            onChange={(e) => setFilterYm(e.target.value)}
-            className="h-8 rounded-md border border-zinc-200 bg-white px-2 text-xs text-zinc-600 focus:outline-none dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300"
-          >
-            <option value="">Todos los meses</option>
-            {months.map((ym, i) => (
-              <option key={ym} value={ym}>{monthLabels[i]}</option>
-            ))}
-          </select>
-        </div>
+            Limpiar filtros
+          </button>
+        )}
+      </div>
+
+      {/* Filter bar */}
+      <div className="flex flex-wrap gap-2">
+        <select value={filterKind} onChange={(e) => setFilterKind(e.target.value as "" | "income" | "expense")} className={selectCls}>
+          <option value="">Tipo: todos</option>
+          <option value="income">Ingresos</option>
+          <option value="expense">Egresos</option>
+        </select>
+        <select value={filterYm} onChange={(e) => setFilterYm(e.target.value)} className={selectCls}>
+          <option value="">Mes: todos</option>
+          {months.map((ym, i) => <option key={ym} value={ym}>{monthLabels[i]}</option>)}
+        </select>
+        <select value={filterGroup} onChange={(e) => setFilterGroup(e.target.value)} className={selectCls}>
+          <option value="">Grupo: todos</option>
+          {availableGroups.map(([code, label]) => <option key={code} value={code}>{label}</option>)}
+        </select>
+        <select value={filterPerson} onChange={(e) => setFilterPerson(e.target.value)} className={selectCls}>
+          <option value="">Persona: todas</option>
+          {availablePeople.map(([id, name]) => <option key={id} value={id}>{name}</option>)}
+        </select>
+        <input
+          type="text"
+          placeholder="Buscar en descripción…"
+          value={filterDesc}
+          onChange={(e) => setFilterDesc(e.target.value)}
+          className="h-8 rounded-md border border-zinc-200 bg-white px-2 text-xs text-zinc-600 placeholder-zinc-300 focus:outline-none focus:ring-1 focus:ring-zinc-300 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 dark:placeholder-zinc-600 min-w-[180px]"
+        />
       </div>
 
       {filtered.length === 0 ? (
@@ -425,24 +483,12 @@ function TransactionDetailTable({
           <table className="min-w-full border-separate border-spacing-0 text-sm">
             <thead>
               <tr className="bg-zinc-50 dark:bg-zinc-900">
-                <th className="border-b border-zinc-200 px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-widest text-zinc-500 dark:border-zinc-800 dark:text-zinc-400 w-24">
-                  Fecha
-                </th>
-                <th className="border-b border-zinc-200 px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-widest text-zinc-500 dark:border-zinc-800 dark:text-zinc-400 w-24">
-                  Mes
-                </th>
-                <th className="border-b border-zinc-200 px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-widest text-zinc-500 dark:border-zinc-800 dark:text-zinc-400">
-                  Grupo / Subcategoría
-                </th>
-                <th className="border-b border-zinc-200 px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-widest text-zinc-500 dark:border-zinc-800 dark:text-zinc-400">
-                  Descripción
-                </th>
-                <th className="border-b border-zinc-200 px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-widest text-zinc-500 dark:border-zinc-800 dark:text-zinc-400">
-                  Persona
-                </th>
-                <th className="border-b border-zinc-200 px-3 py-2.5 text-right text-xs font-semibold uppercase tracking-widest text-zinc-500 dark:border-zinc-800 dark:text-zinc-400 w-36">
-                  Monto
-                </th>
+                <th className="border-b border-zinc-200 px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-widest text-zinc-500 dark:border-zinc-800 dark:text-zinc-400 w-24">Fecha</th>
+                <th className="border-b border-zinc-200 px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-widest text-zinc-500 dark:border-zinc-800 dark:text-zinc-400 w-24">Mes</th>
+                <th className="border-b border-zinc-200 px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-widest text-zinc-500 dark:border-zinc-800 dark:text-zinc-400">Grupo / Subcategoría</th>
+                <th className="border-b border-zinc-200 px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-widest text-zinc-500 dark:border-zinc-800 dark:text-zinc-400">Descripción</th>
+                <th className="border-b border-zinc-200 px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-widest text-zinc-500 dark:border-zinc-800 dark:text-zinc-400">Persona</th>
+                <th className="border-b border-zinc-200 px-3 py-2.5 text-right text-xs font-semibold uppercase tracking-widest text-zinc-500 dark:border-zinc-800 dark:text-zinc-400 w-36">Monto</th>
                 <th className="border-b border-zinc-200 px-3 py-2.5 dark:border-zinc-800 w-10" />
               </tr>
             </thead>
@@ -452,9 +498,7 @@ function TransactionDetailTable({
                 const isIncome = cat?.kind === "income";
                 const personName = e.teamMemberId
                   ? memberMap.get(e.teamMemberId) ?? null
-                  : e.clientId
-                  ? clientMap.get(e.clientId) ?? null
-                  : null;
+                  : e.clientId ? clientMap.get(e.clientId) ?? null : null;
                 return (
                   <tr
                     key={e.id}
@@ -471,18 +515,12 @@ function TransactionDetailTable({
                     </td>
                     <td className="px-3 py-2.5">
                       <div className="flex items-center gap-1.5">
-                        {isIncome ? (
-                          <ArrowUpRight className="h-3.5 w-3.5 shrink-0 text-emerald-500" />
-                        ) : (
-                          <ArrowDownLeft className="h-3.5 w-3.5 shrink-0 text-red-400" />
-                        )}
+                        {isIncome
+                          ? <ArrowUpRight className="h-3.5 w-3.5 shrink-0 text-emerald-500" />
+                          : <ArrowDownLeft className="h-3.5 w-3.5 shrink-0 text-red-400" />}
                         <div>
-                          <p className="text-xs font-medium text-zinc-700 dark:text-zinc-300">
-                            {cat?.parentLabel ?? e.categoryCode}
-                          </p>
-                          <p className="text-xs text-zinc-400 dark:text-zinc-500">
-                            {cat?.label ?? ""}
-                          </p>
+                          <p className="text-xs font-medium text-zinc-700 dark:text-zinc-300">{cat?.parentLabel ?? e.categoryCode}</p>
+                          <p className="text-xs text-zinc-400 dark:text-zinc-500">{cat?.label ?? ""}</p>
                         </div>
                       </div>
                     </td>
@@ -495,9 +533,7 @@ function TransactionDetailTable({
                           <UserCircle className="h-3 w-3 shrink-0" />
                           {personName}
                         </span>
-                      ) : (
-                        <span className="text-zinc-300 dark:text-zinc-600">—</span>
-                      )}
+                      ) : <span className="text-zinc-300 dark:text-zinc-600">—</span>}
                     </td>
                     <td className={cn(
                       "px-3 py-2.5 text-right text-sm font-semibold tabular-nums",
@@ -521,8 +557,7 @@ function TransactionDetailTable({
             <tfoot>
               <tr className="border-t border-zinc-200 bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900/50">
                 <td colSpan={5} className="px-3 py-2.5 text-xs font-semibold text-zinc-500 dark:text-zinc-400">
-                  {filtered.length} transacción{filtered.length !== 1 ? "es" : ""}
-                  {filterYm || filterKind ? " (filtradas)" : ""}
+                  {filtered.length} transacción{filtered.length !== 1 ? "es" : ""}{hasFilters ? " (filtradas)" : ""}
                 </td>
                 <td className={cn(
                   "px-3 py-2.5 text-right text-sm font-bold tabular-nums",

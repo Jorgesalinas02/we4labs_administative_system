@@ -460,6 +460,7 @@ function TransactionDetailTable({
               <tr className="bg-zinc-50 dark:bg-zinc-900">
                 <th className="border-b border-zinc-100 px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-widest text-zinc-500 dark:border-zinc-800 dark:text-zinc-400 w-24">Fecha</th>
                 <th className="border-b border-zinc-100 px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-widest text-zinc-500 dark:border-zinc-800 dark:text-zinc-400 w-28">Mes</th>
+                <th className="border-b border-zinc-100 px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-widest text-zinc-500 dark:border-zinc-800 dark:text-zinc-400 w-28">Tipo</th>
                 <th className="border-b border-zinc-100 px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-widest text-zinc-500 dark:border-zinc-800 dark:text-zinc-400">Grupo / Subcategoría</th>
                 <th className="border-b border-zinc-100 px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-widest text-zinc-500 dark:border-zinc-800 dark:text-zinc-400">Descripción</th>
                 <th className="border-b border-zinc-100 px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-widest text-zinc-500 dark:border-zinc-800 dark:text-zinc-400">Persona</th>
@@ -483,6 +484,13 @@ function TransactionDetailTable({
                   </select>
                 </td>
                 <td className="border-b border-zinc-200 px-2 py-1.5 dark:border-zinc-800">
+                  <select value={filterKind} onChange={(e) => setFilterKind(e.target.value as "" | "income" | "expense")} className={filterInputCls}>
+                    <option value="">Todos</option>
+                    <option value="income">Ingreso</option>
+                    <option value="expense">Egreso</option>
+                  </select>
+                </td>
+                <td className="border-b border-zinc-200 px-2 py-1.5 dark:border-zinc-800">
                   <select value={filterGroup} onChange={(e) => setFilterGroup(e.target.value)} className={filterInputCls}>
                     <option value="">Todos los grupos</option>
                     {availableGroups.map(([code, label]) => <option key={code} value={code}>{label}</option>)}
@@ -503,13 +511,7 @@ function TransactionDetailTable({
                     {availablePeople.map(([id, name]) => <option key={id} value={id}>{name}</option>)}
                   </select>
                 </td>
-                <td className="border-b border-zinc-200 px-2 py-1.5 dark:border-zinc-800">
-                  <select value={filterKind} onChange={(e) => setFilterKind(e.target.value as "" | "income" | "expense")} className={cn(filterInputCls, "text-right")}>
-                    <option value="">Todos</option>
-                    <option value="income">Ingresos</option>
-                    <option value="expense">Egresos</option>
-                  </select>
-                </td>
+                <td className="border-b border-zinc-200 px-2 py-1.5 dark:border-zinc-800" />
                 <td className="border-b border-zinc-200 px-2 py-1.5 dark:border-zinc-800" />
               </tr>
             </thead>
@@ -535,14 +537,22 @@ function TransactionDetailTable({
                       {monthLabels[months.indexOf(e.periodYm)] ?? e.periodYm}
                     </td>
                     <td className="px-3 py-2.5">
-                      <div className="flex items-center gap-1.5">
-                        {isIncome
-                          ? <ArrowUpRight className="h-3.5 w-3.5 shrink-0 text-emerald-500" />
-                          : <ArrowDownLeft className="h-3.5 w-3.5 shrink-0 text-red-400" />}
-                        <div>
-                          <p className="text-xs font-medium text-zinc-700 dark:text-zinc-300">{cat?.parentLabel ?? e.categoryCode}</p>
-                          <p className="text-xs text-zinc-400 dark:text-zinc-500">{cat?.label ?? ""}</p>
-                        </div>
+                      {isIncome ? (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400">
+                          <ArrowUpRight className="h-3 w-3" />
+                          Ingreso
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-red-50 px-2 py-0.5 text-xs font-medium text-red-600 dark:bg-red-950/40 dark:text-red-400">
+                          <ArrowDownLeft className="h-3 w-3" />
+                          Egreso
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-3 py-2.5">
+                      <div>
+                        <p className="text-xs font-medium text-zinc-700 dark:text-zinc-300">{cat?.parentLabel ?? e.categoryCode}</p>
+                        <p className="text-xs text-zinc-400 dark:text-zinc-500">{cat?.label ?? ""}</p>
                       </div>
                     </td>
                     <td className="max-w-[220px] px-3 py-2.5 text-xs text-zinc-600 dark:text-zinc-400">
@@ -577,7 +587,7 @@ function TransactionDetailTable({
             </tbody>
             <tfoot>
               <tr className="border-t border-zinc-200 bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900/50">
-                <td colSpan={5} className="px-3 py-2.5 text-xs font-semibold text-zinc-500 dark:text-zinc-400">
+                <td colSpan={6} className="px-3 py-2.5 text-xs font-semibold text-zinc-500 dark:text-zinc-400">
                   {filtered.length} transacción{filtered.length !== 1 ? "es" : ""}{hasFilters ? " (filtradas)" : ""}
                 </td>
                 <td className={cn(

@@ -1,7 +1,6 @@
 export const dynamic = "force-dynamic";
 import {
   loadCashFlowSheet,
-  loadCashMovements,
   loadBusinessCategories,
   loadCategoryEntries,
   loadClients,
@@ -9,7 +8,6 @@ import {
   loadGroupBudgets,
 } from "@/lib/data";
 import { CashFlowCategoryMatrix } from "@/components/cash-flow-category-matrix";
-import { CashMovementsTable } from "@/components/cash-movements-table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CASH_FLOW_DEFAULT_START_YM, cashFlowMonthPeriods, cashFlowMonthLabelEs } from "@we4labs/shared";
 
@@ -18,9 +16,8 @@ export default async function FlujoCajaPage() {
     return <p className="text-sm text-zinc-500">Conecta la base de datos.</p>;
   }
 
-  const [sheet, rows, allCategories, categoryEntries, clientsList, teamMembersList] = await Promise.all([
+  const [sheet, allCategories, categoryEntries, clientsList, teamMembersList] = await Promise.all([
     loadCashFlowSheet(),
-    loadCashMovements(),
     loadBusinessCategories(),
     loadCategoryEntries(),
     loadClients(),
@@ -72,15 +69,6 @@ export default async function FlujoCajaPage() {
             teamMembers={teamMembersList}
             initialBudgets={groupBudgets}
           />
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Movimientos (detalle)</CardTitle>
-        </CardHeader>
-        <CardContent className="p-0 sm:p-0">
-          <CashMovementsTable rows={rows} />
         </CardContent>
       </Card>
     </div>

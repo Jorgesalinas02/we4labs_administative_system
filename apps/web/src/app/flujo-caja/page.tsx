@@ -17,14 +17,16 @@ export default async function FlujoCajaPage() {
     return <p className="text-sm text-zinc-500">Conecta la base de datos.</p>;
   }
 
-  const [sheet, rows, allCategories, categoryEntries, clientsList, groupBudgets] = await Promise.all([
+  const [sheet, rows, allCategories, categoryEntries, clientsList] = await Promise.all([
     loadCashFlowSheet(),
     loadCashMovements(),
     loadBusinessCategories(),
     loadCategoryEntries(),
     loadClients(),
-    loadGroupBudgets(),
   ]);
+
+  // Cargado aparte para no romper el resto si falla
+  const groupBudgets = await loadGroupBudgets();
 
   const startYm = sheet?.startYm ?? CASH_FLOW_DEFAULT_START_YM;
   const months = cashFlowMonthPeriods(startYm);

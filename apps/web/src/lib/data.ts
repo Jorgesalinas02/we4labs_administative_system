@@ -553,9 +553,13 @@ async function runLoadGroupBudgets(tenantId: string): Promise<GroupBudgets> {
 const loadGroupBudgetsCached = cacheByTenant("groupBudgets", runLoadGroupBudgets);
 
 export async function loadGroupBudgets(): Promise<GroupBudgets> {
-  const tenantId = await resolveTenantId();
-  if (!tenantId || !process.env.DATABASE_URL) return {};
-  return loadGroupBudgetsCached(tenantId);
+  try {
+    const tenantId = await resolveTenantId();
+    if (!tenantId || !process.env.DATABASE_URL) return {};
+    return await loadGroupBudgetsCached(tenantId);
+  } catch {
+    return {};
+  }
 }
 
 // ── Clientes ──────────────────────────────────────────────────────────────────

@@ -50,13 +50,13 @@ function ScrollableTable({ children, className }: { children: React.ReactNode; c
     <div className="relative">
       {canScrollLeft && (
         <button onClick={() => scrollRef.current?.scrollBy({ left: -300, behavior: "smooth" })}
-          className={cn(btnCls, "-left-4")} aria-label="Desplazar izquierda">
+          className={cn(btnCls, "left-2")} aria-label="Desplazar izquierda">
           <ChevronLeft className="h-4 w-4 text-zinc-600 dark:text-zinc-400" />
         </button>
       )}
       {canScrollRight && (
         <button onClick={() => scrollRef.current?.scrollBy({ left: 300, behavior: "smooth" })}
-          className={cn(btnCls, "-right-4")} aria-label="Desplazar derecha">
+          className={cn(btnCls, "right-2")} aria-label="Desplazar derecha">
           <ChevronRight className="h-4 w-4 text-zinc-600 dark:text-zinc-400" />
         </button>
       )}

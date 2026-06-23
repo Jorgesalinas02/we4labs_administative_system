@@ -50,7 +50,7 @@ export default async function FlujoCajaPage() {
         </p>
       </div>
 
-      <Card className="w-max min-w-full">
+      <Card className="min-w-full">
         <CardHeader className="pb-3">
           <CardTitle className="text-base">
             Período {startYm} — {months[months.length - 1]}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useCallback } from "react";
+import { useMemo, useState, useCallback, useRef, useEffect } from "react";
 import type { BusinessCategoryRecord, CashFlowEntry, CategoryEntrySums, ClientRecord, TeamMemberRecord, GroupBudgets } from "@/lib/data";
 import { CopAmountInput } from "@/components/cop-amount-input";
 import { cn } from "@/lib/cn";
@@ -20,6 +20,51 @@ function fmtDate(d: string | null) {
   if (!d) return null;
   const [y, m, day] = d.split("-");
   return `${day}/${m}/${y}`;
+}
+
+// ─── Scrollable table wrapper ─────────────────────────────────────────────────
+
+function ScrollableTable({ children, className }: { children: React.ReactNode; className?: string }) {
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(false);
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const div: HTMLDivElement = el;
+    function update() {
+      setCanScrollLeft(div.scrollLeft > 4);
+      setCanScrollRight(div.scrollLeft + div.clientWidth < div.scrollWidth - 4);
+    }
+    update();
+    div.addEventListener("scroll", update);
+    const ro = new ResizeObserver(update);
+    ro.observe(div);
+    return () => { div.removeEventListener("scroll", update); ro.disconnect(); };
+  }, []);
+
+  const btnCls = "absolute top-1/2 z-20 -translate-y-1/2 flex h-8 w-8 items-center justify-center rounded-full border border-zinc-200 bg-white shadow-sm hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 dark:hover:bg-zinc-800";
+
+  return (
+    <div className="relative">
+      {canScrollLeft && (
+        <button onClick={() => scrollRef.current?.scrollBy({ left: -300, behavior: "smooth" })}
+          className={cn(btnCls, "-left-4")} aria-label="Desplazar izquierda">
+          <ChevronLeft className="h-4 w-4 text-zinc-600 dark:text-zinc-400" />
+        </button>
+      )}
+      {canScrollRight && (
+        <button onClick={() => scrollRef.current?.scrollBy({ left: 300, behavior: "smooth" })}
+          className={cn(btnCls, "-right-4")} aria-label="Desplazar derecha">
+          <ChevronRight className="h-4 w-4 text-zinc-600 dark:text-zinc-400" />
+        </button>
+      )}
+      <div ref={scrollRef} className={className}>
+        {children}
+      </div>
+    </div>
+  );
 }
 
 // ─── Entry input modal ───────────────────────────────────────────────────────
@@ -453,7 +498,7 @@ function TransactionDetailTable({
       {filtered.length === 0 && hasFilters ? (
         <p className="py-6 text-center text-sm text-zinc-400">Sin transacciones para los filtros seleccionados.</p>
       ) : (
-        <div className="overflow-x-auto rounded-lg border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950">
+        <ScrollableTable className="overflow-x-auto rounded-lg border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950">
           <table className="min-w-full border-separate border-spacing-0 text-sm">
             <thead>
               {/* Column labels */}
@@ -600,7 +645,7 @@ function TransactionDetailTable({
               </tr>
             </tfoot>
           </table>
-        </div>
+        </ScrollableTable>
       )}
     </div>
   );
@@ -1049,7 +1094,7 @@ export function CashFlowCategoryMatrix({
         <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-600 dark:bg-red-950/30 dark:text-red-400">{err}</p>
       )}
 
-      <div className="w-full overflow-x-auto rounded-lg border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950">
+      <ScrollableTable className="w-full overflow-x-auto rounded-lg border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950">
         <table className="border-separate border-spacing-0 text-sm" style={{ minWidth: `${months.length * 160 + 360}px` }}>
           <thead>
             {/* Row 1: month labels (each spans 2 columns) */}
@@ -1189,7 +1234,7 @@ export function CashFlowCategoryMatrix({
             />
           </tbody>
         </table>
-      </div>
+      </ScrollableTable>
 
       <TransactionDetailTable
         entries={entries}

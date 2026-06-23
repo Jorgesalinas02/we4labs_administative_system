@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState, useCallback } from "react";
-import type { BusinessCategoryRecord, CashFlowEntry, CategoryEntrySums, ClientRecord, GroupBudgets } from "@/lib/data";
+import type { BusinessCategoryRecord, CashFlowEntry, CategoryEntrySums, ClientRecord, TeamMemberRecord, GroupBudgets } from "@/lib/data";
 import { CopAmountInput } from "@/components/cop-amount-input";
 import { cn } from "@/lib/cn";
 import { Plus, X, Trash2, ChevronLeft, ChevronRight, UserCircle } from "lucide-react";
@@ -33,6 +33,7 @@ type EntryModalProps = {
   monthLabels: string[];
   entries: CashFlowEntry[];
   clients?: ClientRecord[];
+  teamMembers?: TeamMemberRecord[];
   kind: "income" | "expense";
   onAdd: (entry: EntryDraft) => Promise<CashFlowEntry | null>;
   onDelete: (id: string) => Promise<void>;
@@ -46,6 +47,7 @@ function EntryModal({
   monthLabels,
   entries,
   clients = [],
+  teamMembers = [],
   kind,
   onAdd,
   onDelete,
@@ -60,12 +62,12 @@ function EntryModal({
   const [description, setDescription] = useState("");
   const [occurredOn, setOccurredOn] = useState("");
   const [clientId, setClientId] = useState("");
+  const [teamMemberId, setTeamMemberId] = useState("");
   const [saving, setSaving] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
 
-  const clientLabel = kind === "income" ? "Cliente" : "Proveedor";
-  const showClientPicker = true;
+  const isExpense = kind === "expense";
 
   const selectedYm = months[monthIdx]!;
   const monthEntriesForCode = entries.filter(
@@ -87,12 +89,14 @@ function EntryModal({
         occurredOn: occurredOn || null,
         description: description.trim() || null,
         amount,
-        clientId: clientId || null,
+        clientId: isExpense ? null : clientId || null,
+        teamMemberId: isExpense ? teamMemberId || null : null,
       });
       setAmount(0);
       setDescription("");
       setOccurredOn("");
       setClientId("");
+      setTeamMemberId("");
     } catch (e) {
       setErr(String(e));
     } finally {
@@ -186,15 +190,43 @@ function EntryModal({
                 />
               </div>
             </div>
-            {showClientPicker && (
+            {isExpense ? (
               <div className="space-y-1">
                 <label className="flex items-center gap-1.5 text-xs font-medium text-zinc-600 dark:text-zinc-400">
                   <UserCircle className="h-3.5 w-3.5" />
-                  {clientLabel} (opcional)
+                  Miembro del equipo (opcional)
+                </label>
+                {teamMembers.length === 0 ? (
+                  <p className="text-xs text-zinc-400">
+                    No hay miembros del equipo registrados.{" "}
+                    <a href="/equipo" className="underline hover:text-zinc-600">
+                      Añadir en Equipo →
+                    </a>
+                  </p>
+                ) : (
+                  <select
+                    value={teamMemberId}
+                    onChange={(e) => setTeamMemberId(e.target.value)}
+                    className={cn(inputCls, "w-full")}
+                  >
+                    <option value="">— Sin asignar —</option>
+                    {teamMembers.map((m) => (
+                      <option key={m.id} value={m.id}>
+                        {m.name}
+                      </option>
+                    ))}
+                  </select>
+                )}
+              </div>
+            ) : (
+              <div className="space-y-1">
+                <label className="flex items-center gap-1.5 text-xs font-medium text-zinc-600 dark:text-zinc-400">
+                  <UserCircle className="h-3.5 w-3.5" />
+                  Cliente (opcional)
                 </label>
                 {clients.length === 0 ? (
                   <p className="text-xs text-zinc-400">
-                    No hay {kind === "income" ? "clientes" : "proveedores"} registrados.{" "}
+                    No hay clientes registrados.{" "}
                     <a href="/clientes" className="underline hover:text-zinc-600">
                       Añadir en Clientes →
                     </a>
@@ -205,7 +237,7 @@ function EntryModal({
                     onChange={(e) => setClientId(e.target.value)}
                     className={cn(inputCls, "w-full")}
                   >
-                    <option value="">— Sin {clientLabel.toLowerCase()} asociado —</option>
+                    <option value="">— Sin cliente asociado —</option>
                     {clients.map((c) => (
                       <option key={c.id} value={c.id}>
                         {c.name}{c.nit ? ` · ${c.nit}` : ""}
@@ -251,16 +283,18 @@ function EntryModal({
               <div className="divide-y divide-zinc-100 rounded-lg border border-zinc-200 dark:divide-zinc-800 dark:border-zinc-800">
                 {monthEntriesForCode.map((e) => {
                   const clientName = e.clientId ? clients.find((c) => c.id === e.clientId)?.name : null;
+                  const memberName = e.teamMemberId ? teamMembers.find((m) => m.id === e.teamMemberId)?.name : null;
+                  const personName = memberName ?? clientName;
                   return (
                     <div key={e.id} className="flex items-start justify-between gap-2 px-3 py-2.5">
                       <div className="min-w-0 flex-1">
                         <p className="text-sm font-medium tabular-nums text-zinc-800 dark:text-zinc-200">
                           {fmtBold(e.amount)}
                         </p>
-                        {clientName && (
+                        {personName && (
                           <p className="mt-0.5 flex items-center gap-1 text-xs font-medium text-blue-600 dark:text-blue-400">
                             <UserCircle className="h-3 w-3 shrink-0" />
-                            {clientName}
+                            {personName}
                           </p>
                         )}
                         {e.description && (
@@ -536,6 +570,7 @@ type Props = {
   monthLabels: string[];
   saldoInicial: number;
   clients?: ClientRecord[];
+  teamMembers?: TeamMemberRecord[];
   initialBudgets: GroupBudgets;
 };
 
@@ -548,6 +583,7 @@ export function CashFlowCategoryMatrix({
   monthLabels,
   saldoInicial,
   clients = [],
+  teamMembers = [],
   initialBudgets,
 }: Props) {
   const { isAdmin } = useRole();
@@ -880,6 +916,7 @@ export function CashFlowCategoryMatrix({
           monthLabels={monthLabels}
           entries={entries}
           clients={clients}
+          teamMembers={teamMembers}
           kind={openModal.kind}
           onAdd={handleAdd}
           onDelete={handleDelete}

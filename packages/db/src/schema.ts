@@ -291,6 +291,22 @@ export const clients = pgTable("clients", {
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
 });
 
+/** Miembros del equipo / prestadores de servicios del tenant. */
+export const teamMembers = pgTable("team_members", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  tenantId: uuid("tenant_id")
+    .notNull()
+    .references(() => tenants.id, { onDelete: "cascade" }),
+  name: varchar("name", { length: 200 }).notNull(),
+  /** Rol: empleado | contratista | socio | otro */
+  kind: varchar("kind", { length: 32 }).notNull().default("empleado"),
+  email: varchar("email", { length: 320 }),
+  notes: text("notes"),
+  active: boolean("active").notNull().default(true),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
+});
+
 /** Transacciones individuales por categoría de negocio y mes. */
 export const cashFlowEntries = pgTable("cash_flow_entries", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -303,6 +319,7 @@ export const cashFlowEntries = pgTable("cash_flow_entries", {
   description: text("description"),
   amount: numeric("amount", { precision: 18, scale: 2 }).notNull().default("0"),
   clientId: uuid("client_id").references(() => clients.id, { onDelete: "set null" }),
+  teamMemberId: uuid("team_member_id").references(() => teamMembers.id, { onDelete: "set null" }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
 });

@@ -12,6 +12,7 @@ import {
   Landmark,
   TrendingUp,
   Users,
+  Users2,
   Settings,
 } from "lucide-react";
 import { UserButton } from "@clerk/nextjs";
@@ -25,6 +26,7 @@ const nav = [
   { href: "/flujo-caja", label: "Flujo de caja", icon: Wallet },
   { href: "/proyecciones", label: "Proyecciones", icon: TrendingUp },
   { href: "/clientes", label: "Clientes", icon: Users },
+  { href: "/equipo", label: "Equipo", icon: Users2 },
   { href: "/cartera", label: "Cuentas por Cobrar", icon: Landmark },
   { href: "/calendario-tributario", label: "Calendario tributario", icon: CalendarDays },
   { href: "/guia-obligaciones", label: "Guía obligaciones", icon: BookOpen },

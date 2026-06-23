@@ -48,6 +48,7 @@ export async function POST(req: Request) {
       description?: unknown;
       amount?: unknown;
       clientId?: unknown;
+      teamMemberId?: unknown;
     };
 
     const categoryCode = typeof raw.categoryCode === "string" ? raw.categoryCode.trim() : null;
@@ -73,6 +74,7 @@ export async function POST(req: Request) {
           description: typeof raw.description === "string" ? raw.description.trim() || null : null,
           amount: String(amount),
           clientId: typeof raw.clientId === "string" ? raw.clientId : null,
+          teamMemberId: typeof raw.teamMemberId === "string" ? raw.teamMemberId : null,
         })
         .returning(),
     );
@@ -122,6 +124,7 @@ export async function PATCH(req: Request) {
       description?: unknown;
       amount?: unknown;
       clientId?: unknown;
+      teamMemberId?: unknown;
     };
 
     const id = typeof raw.id === "string" ? raw.id : null;
@@ -139,6 +142,8 @@ export async function PATCH(req: Request) {
     }
     if (raw.clientId !== undefined)
       updates.clientId = typeof raw.clientId === "string" ? raw.clientId : null;
+    if (raw.teamMemberId !== undefined)
+      updates.teamMemberId = typeof raw.teamMemberId === "string" ? raw.teamMemberId : null;
 
     const sql = getSql();
     await withTenant(sql, tenantId, (db) =>

@@ -4,7 +4,7 @@ import { useMemo, useState, useCallback } from "react";
 import type { BusinessCategoryRecord, CashFlowEntry, CategoryEntrySums, ClientRecord, TeamMemberRecord, GroupBudgets } from "@/lib/data";
 import { CopAmountInput } from "@/components/cop-amount-input";
 import { cn } from "@/lib/cn";
-import { Plus, X, Trash2, ChevronLeft, ChevronRight, UserCircle } from "lucide-react";
+import { Plus, X, Trash2, ChevronLeft, ChevronRight, UserCircle, ArrowUpRight, ArrowDownLeft } from "lucide-react";
 import { DatePickerInput } from "@/components/date-picker-input";
 import { useRole } from "@/components/role-provider";
 
@@ -319,6 +319,223 @@ function EntryModal({
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+// ─── Transaction detail table ────────────────────────────────────────────────
+
+type TransactionDetailTableProps = {
+  entries: CashFlowEntry[];
+  incomeCategories: BusinessCategoryRecord[];
+  expenseCategories: BusinessCategoryRecord[];
+  clients: ClientRecord[];
+  teamMembers: TeamMemberRecord[];
+  months: string[];
+  monthLabels: string[];
+  onDelete: (id: string) => Promise<void>;
+};
+
+function TransactionDetailTable({
+  entries,
+  incomeCategories,
+  expenseCategories,
+  clients,
+  teamMembers,
+  months,
+  monthLabels,
+  onDelete,
+}: TransactionDetailTableProps) {
+  const [filterYm, setFilterYm] = useState("");
+  const [filterKind, setFilterKind] = useState<"" | "income" | "expense">("");
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  const categoryMap = useMemo(() => {
+    const m = new Map<string, { parentLabel: string; label: string; kind: "income" | "expense" }>();
+    for (const c of incomeCategories) m.set(c.code, { parentLabel: c.parentLabel, label: c.label, kind: "income" });
+    for (const c of expenseCategories) m.set(c.code, { parentLabel: c.parentLabel, label: c.label, kind: "expense" });
+    return m;
+  }, [incomeCategories, expenseCategories]);
+
+  const clientMap = useMemo(() => new Map(clients.map((c) => [c.id, c.name])), [clients]);
+  const memberMap = useMemo(() => new Map(teamMembers.map((m) => [m.id, m.name])), [teamMembers]);
+
+  const filtered = useMemo(() => {
+    return entries
+      .filter((e) => !filterYm || e.periodYm === filterYm)
+      .filter((e) => {
+        if (!filterKind) return true;
+        return categoryMap.get(e.categoryCode)?.kind === filterKind;
+      })
+      .slice()
+      .sort((a, b) => {
+        if (b.periodYm !== a.periodYm) return b.periodYm.localeCompare(a.periodYm);
+        const da = a.occurredOn ?? "";
+        const db = b.occurredOn ?? "";
+        return db.localeCompare(da);
+      });
+  }, [entries, filterYm, filterKind, categoryMap]);
+
+  const total = filtered.reduce((s, e) => {
+    const kind = categoryMap.get(e.categoryCode)?.kind;
+    return kind === "income" ? s + e.amount : s - e.amount;
+  }, 0);
+
+  async function handleDelete(id: string) {
+    setDeletingId(id);
+    try { await onDelete(id); }
+    finally { setDeletingId(null); }
+  }
+
+  if (entries.length === 0) return null;
+
+  return (
+    <div className="space-y-3">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h2 className="text-base font-semibold text-zinc-900 dark:text-zinc-100">
+          Detalle de transacciones
+        </h2>
+        <div className="flex flex-wrap items-center gap-2">
+          <select
+            value={filterKind}
+            onChange={(e) => setFilterKind(e.target.value as "" | "income" | "expense")}
+            className="h-8 rounded-md border border-zinc-200 bg-white px-2 text-xs text-zinc-600 focus:outline-none dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300"
+          >
+            <option value="">Todos los tipos</option>
+            <option value="income">Solo ingresos</option>
+            <option value="expense">Solo egresos</option>
+          </select>
+          <select
+            value={filterYm}
+            onChange={(e) => setFilterYm(e.target.value)}
+            className="h-8 rounded-md border border-zinc-200 bg-white px-2 text-xs text-zinc-600 focus:outline-none dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300"
+          >
+            <option value="">Todos los meses</option>
+            {months.map((ym, i) => (
+              <option key={ym} value={ym}>{monthLabels[i]}</option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      {filtered.length === 0 ? (
+        <p className="py-6 text-center text-sm text-zinc-400">Sin transacciones para los filtros seleccionados.</p>
+      ) : (
+        <div className="overflow-x-auto rounded-lg border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950">
+          <table className="min-w-full border-separate border-spacing-0 text-sm">
+            <thead>
+              <tr className="bg-zinc-50 dark:bg-zinc-900">
+                <th className="border-b border-zinc-200 px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-widest text-zinc-500 dark:border-zinc-800 dark:text-zinc-400 w-24">
+                  Fecha
+                </th>
+                <th className="border-b border-zinc-200 px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-widest text-zinc-500 dark:border-zinc-800 dark:text-zinc-400 w-24">
+                  Mes
+                </th>
+                <th className="border-b border-zinc-200 px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-widest text-zinc-500 dark:border-zinc-800 dark:text-zinc-400">
+                  Grupo / Subcategoría
+                </th>
+                <th className="border-b border-zinc-200 px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-widest text-zinc-500 dark:border-zinc-800 dark:text-zinc-400">
+                  Descripción
+                </th>
+                <th className="border-b border-zinc-200 px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-widest text-zinc-500 dark:border-zinc-800 dark:text-zinc-400">
+                  Persona
+                </th>
+                <th className="border-b border-zinc-200 px-3 py-2.5 text-right text-xs font-semibold uppercase tracking-widest text-zinc-500 dark:border-zinc-800 dark:text-zinc-400 w-36">
+                  Monto
+                </th>
+                <th className="border-b border-zinc-200 px-3 py-2.5 dark:border-zinc-800 w-10" />
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map((e, i) => {
+                const cat = categoryMap.get(e.categoryCode);
+                const isIncome = cat?.kind === "income";
+                const personName = e.teamMemberId
+                  ? memberMap.get(e.teamMemberId) ?? null
+                  : e.clientId
+                  ? clientMap.get(e.clientId) ?? null
+                  : null;
+                return (
+                  <tr
+                    key={e.id}
+                    className={cn(
+                      "group border-b border-zinc-100 last:border-0 hover:bg-zinc-50/60 dark:border-zinc-800 dark:hover:bg-zinc-800/20",
+                      i % 2 === 0 ? "" : "bg-zinc-50/30 dark:bg-zinc-900/20",
+                    )}
+                  >
+                    <td className="px-3 py-2.5 text-xs tabular-nums text-zinc-500 dark:text-zinc-400">
+                      {e.occurredOn ? fmtDate(e.occurredOn) : <span className="text-zinc-300 dark:text-zinc-600">—</span>}
+                    </td>
+                    <td className="px-3 py-2.5 text-xs text-zinc-500 dark:text-zinc-400 whitespace-nowrap">
+                      {monthLabels[months.indexOf(e.periodYm)] ?? e.periodYm}
+                    </td>
+                    <td className="px-3 py-2.5">
+                      <div className="flex items-center gap-1.5">
+                        {isIncome ? (
+                          <ArrowUpRight className="h-3.5 w-3.5 shrink-0 text-emerald-500" />
+                        ) : (
+                          <ArrowDownLeft className="h-3.5 w-3.5 shrink-0 text-red-400" />
+                        )}
+                        <div>
+                          <p className="text-xs font-medium text-zinc-700 dark:text-zinc-300">
+                            {cat?.parentLabel ?? e.categoryCode}
+                          </p>
+                          <p className="text-xs text-zinc-400 dark:text-zinc-500">
+                            {cat?.label ?? ""}
+                          </p>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="max-w-[220px] px-3 py-2.5 text-xs text-zinc-600 dark:text-zinc-400">
+                      {e.description ?? <span className="text-zinc-300 dark:text-zinc-600">—</span>}
+                    </td>
+                    <td className="px-3 py-2.5">
+                      {personName ? (
+                        <span className="flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400">
+                          <UserCircle className="h-3 w-3 shrink-0" />
+                          {personName}
+                        </span>
+                      ) : (
+                        <span className="text-zinc-300 dark:text-zinc-600">—</span>
+                      )}
+                    </td>
+                    <td className={cn(
+                      "px-3 py-2.5 text-right text-sm font-semibold tabular-nums",
+                      isIncome ? "text-emerald-700 dark:text-emerald-400" : "text-red-600 dark:text-red-400",
+                    )}>
+                      {isIncome ? "+" : "−"}{fmtBold(e.amount)}
+                    </td>
+                    <td className="px-3 py-2.5">
+                      <button
+                        onClick={() => void handleDelete(e.id)}
+                        disabled={deletingId === e.id}
+                        className="rounded p-1 text-zinc-300 opacity-0 transition-opacity group-hover:opacity-100 hover:bg-red-50 hover:text-red-500 disabled:opacity-30 dark:text-zinc-600 dark:hover:bg-red-950/30 dark:hover:text-red-400"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+            <tfoot>
+              <tr className="border-t border-zinc-200 bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900/50">
+                <td colSpan={5} className="px-3 py-2.5 text-xs font-semibold text-zinc-500 dark:text-zinc-400">
+                  {filtered.length} transacción{filtered.length !== 1 ? "es" : ""}
+                  {filterYm || filterKind ? " (filtradas)" : ""}
+                </td>
+                <td className={cn(
+                  "px-3 py-2.5 text-right text-sm font-bold tabular-nums",
+                  total >= 0 ? "text-emerald-700 dark:text-emerald-400" : "text-red-600 dark:text-red-400",
+                )}>
+                  {total >= 0 ? "+" : "−"}{fmtBold(Math.abs(total))}
+                </td>
+                <td />
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      )}
     </div>
   );
 }
@@ -907,6 +1124,17 @@ export function CashFlowCategoryMatrix({
           </tbody>
         </table>
       </div>
+
+      <TransactionDetailTable
+        entries={entries}
+        incomeCategories={incomeCategories}
+        expenseCategories={expenseCategories}
+        clients={clients}
+        teamMembers={teamMembers}
+        months={months}
+        monthLabels={monthLabels}
+        onDelete={handleDelete}
+      />
 
       {openModal && (
         <EntryModal

@@ -428,13 +428,13 @@ function TransactionDetailTable({
     finally { setDeletingId(null); }
   }
 
-  const selectCls = "h-8 rounded-md border border-zinc-200 bg-white px-2 text-xs text-zinc-600 focus:outline-none dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300";
+  const filterInputCls = "w-full rounded border border-zinc-200 bg-white px-2 py-1 text-xs text-zinc-600 placeholder-zinc-300 focus:outline-none focus:ring-1 focus:ring-zinc-300 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 dark:placeholder-zinc-600";
 
   if (entries.length === 0) return null;
 
   return (
     <div className="space-y-3">
-      <div className="flex flex-wrap items-center justify-between gap-2">
+      <div className="flex items-center justify-between">
         <h2 className="text-base font-semibold text-zinc-900 dark:text-zinc-100">
           Detalle de transacciones
         </h2>
@@ -448,48 +448,60 @@ function TransactionDetailTable({
         )}
       </div>
 
-      {/* Filter bar */}
-      <div className="flex flex-wrap gap-2">
-        <select value={filterKind} onChange={(e) => setFilterKind(e.target.value as "" | "income" | "expense")} className={selectCls}>
-          <option value="">Tipo: todos</option>
-          <option value="income">Ingresos</option>
-          <option value="expense">Egresos</option>
-        </select>
-        <select value={filterYm} onChange={(e) => setFilterYm(e.target.value)} className={selectCls}>
-          <option value="">Mes: todos</option>
-          {months.map((ym, i) => <option key={ym} value={ym}>{monthLabels[i]}</option>)}
-        </select>
-        <select value={filterGroup} onChange={(e) => setFilterGroup(e.target.value)} className={selectCls}>
-          <option value="">Grupo: todos</option>
-          {availableGroups.map(([code, label]) => <option key={code} value={code}>{label}</option>)}
-        </select>
-        <select value={filterPerson} onChange={(e) => setFilterPerson(e.target.value)} className={selectCls}>
-          <option value="">Persona: todas</option>
-          {availablePeople.map(([id, name]) => <option key={id} value={id}>{name}</option>)}
-        </select>
-        <input
-          type="text"
-          placeholder="Buscar en descripción…"
-          value={filterDesc}
-          onChange={(e) => setFilterDesc(e.target.value)}
-          className="h-8 rounded-md border border-zinc-200 bg-white px-2 text-xs text-zinc-600 placeholder-zinc-300 focus:outline-none focus:ring-1 focus:ring-zinc-300 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 dark:placeholder-zinc-600 min-w-[180px]"
-        />
-      </div>
-
-      {filtered.length === 0 ? (
+      {filtered.length === 0 && hasFilters ? (
         <p className="py-6 text-center text-sm text-zinc-400">Sin transacciones para los filtros seleccionados.</p>
       ) : (
         <div className="overflow-x-auto rounded-lg border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950">
           <table className="min-w-full border-separate border-spacing-0 text-sm">
             <thead>
+              {/* Column labels */}
               <tr className="bg-zinc-50 dark:bg-zinc-900">
-                <th className="border-b border-zinc-200 px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-widest text-zinc-500 dark:border-zinc-800 dark:text-zinc-400 w-24">Fecha</th>
-                <th className="border-b border-zinc-200 px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-widest text-zinc-500 dark:border-zinc-800 dark:text-zinc-400 w-24">Mes</th>
-                <th className="border-b border-zinc-200 px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-widest text-zinc-500 dark:border-zinc-800 dark:text-zinc-400">Grupo / Subcategoría</th>
-                <th className="border-b border-zinc-200 px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-widest text-zinc-500 dark:border-zinc-800 dark:text-zinc-400">Descripción</th>
-                <th className="border-b border-zinc-200 px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-widest text-zinc-500 dark:border-zinc-800 dark:text-zinc-400">Persona</th>
-                <th className="border-b border-zinc-200 px-3 py-2.5 text-right text-xs font-semibold uppercase tracking-widest text-zinc-500 dark:border-zinc-800 dark:text-zinc-400 w-36">Monto</th>
-                <th className="border-b border-zinc-200 px-3 py-2.5 dark:border-zinc-800 w-10" />
+                <th className="border-b border-zinc-100 px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-widest text-zinc-500 dark:border-zinc-800 dark:text-zinc-400 w-24">Fecha</th>
+                <th className="border-b border-zinc-100 px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-widest text-zinc-500 dark:border-zinc-800 dark:text-zinc-400 w-28">Mes</th>
+                <th className="border-b border-zinc-100 px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-widest text-zinc-500 dark:border-zinc-800 dark:text-zinc-400">Grupo / Subcategoría</th>
+                <th className="border-b border-zinc-100 px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-widest text-zinc-500 dark:border-zinc-800 dark:text-zinc-400">Descripción</th>
+                <th className="border-b border-zinc-100 px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-widest text-zinc-500 dark:border-zinc-800 dark:text-zinc-400">Persona</th>
+                <th className="border-b border-zinc-100 px-3 py-2.5 text-right text-xs font-semibold uppercase tracking-widest text-zinc-500 dark:border-zinc-800 dark:text-zinc-400 w-36">Monto</th>
+                <th className="border-b border-zinc-100 px-3 py-2.5 dark:border-zinc-800 w-10" />
+              </tr>
+              {/* Filter row */}
+              <tr className="bg-zinc-50/80 dark:bg-zinc-900/60">
+                <td className="border-b border-zinc-200 px-2 py-1.5 dark:border-zinc-800" />
+                <td className="border-b border-zinc-200 px-2 py-1.5 dark:border-zinc-800">
+                  <select value={filterYm} onChange={(e) => setFilterYm(e.target.value)} className={filterInputCls}>
+                    <option value="">Todos</option>
+                    {months.map((ym, i) => <option key={ym} value={ym}>{monthLabels[i]}</option>)}
+                  </select>
+                </td>
+                <td className="border-b border-zinc-200 px-2 py-1.5 dark:border-zinc-800">
+                  <select value={filterGroup} onChange={(e) => setFilterGroup(e.target.value)} className={filterInputCls}>
+                    <option value="">Todos los grupos</option>
+                    {availableGroups.map(([code, label]) => <option key={code} value={code}>{label}</option>)}
+                  </select>
+                </td>
+                <td className="border-b border-zinc-200 px-2 py-1.5 dark:border-zinc-800">
+                  <input
+                    type="text"
+                    placeholder="Buscar…"
+                    value={filterDesc}
+                    onChange={(e) => setFilterDesc(e.target.value)}
+                    className={filterInputCls}
+                  />
+                </td>
+                <td className="border-b border-zinc-200 px-2 py-1.5 dark:border-zinc-800">
+                  <select value={filterPerson} onChange={(e) => setFilterPerson(e.target.value)} className={filterInputCls}>
+                    <option value="">Todas</option>
+                    {availablePeople.map(([id, name]) => <option key={id} value={id}>{name}</option>)}
+                  </select>
+                </td>
+                <td className="border-b border-zinc-200 px-2 py-1.5 dark:border-zinc-800">
+                  <select value={filterKind} onChange={(e) => setFilterKind(e.target.value as "" | "income" | "expense")} className={cn(filterInputCls, "text-right")}>
+                    <option value="">Todos</option>
+                    <option value="income">Ingresos</option>
+                    <option value="expense">Egresos</option>
+                  </select>
+                </td>
+                <td className="border-b border-zinc-200 px-2 py-1.5 dark:border-zinc-800" />
               </tr>
             </thead>
             <tbody>

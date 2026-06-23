@@ -114,8 +114,8 @@ function EntryModal({
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
-      <div className="w-full max-w-lg rounded-xl border border-zinc-200 bg-white shadow-2xl dark:border-zinc-800 dark:bg-zinc-950">
-        <div className="flex items-center justify-between border-b border-zinc-200 px-5 py-4 dark:border-zinc-800">
+      <div className="flex max-h-[90vh] w-full max-w-lg flex-col rounded-xl border border-zinc-200 bg-white shadow-2xl dark:border-zinc-800 dark:bg-zinc-950">
+        <div className="flex shrink-0 items-center justify-between border-b border-zinc-200 px-5 py-4 dark:border-zinc-800">
           <div>
             <p className="text-xs font-medium uppercase tracking-widest text-zinc-400">Registrar transacción</p>
             <h3 className="mt-0.5 text-base font-semibold text-zinc-900 dark:text-zinc-100">{parentLabel}</h3>
@@ -125,7 +125,7 @@ function EntryModal({
           </button>
         </div>
 
-        <div className="space-y-4 p-5">
+        <div className="flex-1 space-y-4 overflow-y-auto p-5">
           <div className="flex items-center justify-between">
             <button onClick={prevMonth} disabled={monthIdx === 0}
               className="rounded-md p-1.5 text-zinc-400 hover:bg-zinc-100 disabled:opacity-30 dark:hover:bg-zinc-800">

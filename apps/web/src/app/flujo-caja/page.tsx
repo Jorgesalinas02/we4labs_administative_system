@@ -5,6 +5,7 @@ import {
   loadBusinessCategories,
   loadCategoryEntries,
   loadClients,
+  loadGroupBudgets,
 } from "@/lib/data";
 import { CashFlowCategoryMatrix } from "@/components/cash-flow-category-matrix";
 import { CashMovementsTable } from "@/components/cash-movements-table";
@@ -16,12 +17,13 @@ export default async function FlujoCajaPage() {
     return <p className="text-sm text-zinc-500">Conecta la base de datos.</p>;
   }
 
-  const [sheet, rows, allCategories, categoryEntries, clientsList] = await Promise.all([
+  const [sheet, rows, allCategories, categoryEntries, clientsList, groupBudgets] = await Promise.all([
     loadCashFlowSheet(),
     loadCashMovements(),
     loadBusinessCategories(),
     loadCategoryEntries(),
     loadClients(),
+    loadGroupBudgets(),
   ]);
 
   const startYm = sheet?.startYm ?? CASH_FLOW_DEFAULT_START_YM;
@@ -63,6 +65,7 @@ export default async function FlujoCajaPage() {
             monthLabels={monthLabels}
             saldoInicial={saldoInicial}
             clients={clientsList}
+            initialBudgets={groupBudgets}
           />
         </CardContent>
       </Card>

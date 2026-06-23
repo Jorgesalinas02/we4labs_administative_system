@@ -519,6 +519,45 @@ export async function loadCategoryEntries() {
   return loadCategoryEntriesCached(tenantId);
 }
 
+// ── Group Budgets (presupuesto por grupo de categoría × mes) ──────────────────
+
+export type GroupBudgets = Record<string, Record<string, number>>;
+
+async function runLoadGroupBudgets(tenantId: string): Promise<GroupBudgets> {
+  const sql = getSql();
+  return withTenant(sql, tenantId, async (db) => {
+    const cats = await db
+      .select({ code: businessCategories.code, parentCode: businessCategories.parentCode })
+      .from(businessCategories)
+      .where(eq(businessCategories.tenantId, tenantId));
+    const parentCodes = [...new Set(cats.map((c) => c.parentCode ?? c.code))];
+    if (parentCodes.length === 0) return {};
+    const cells = await db
+      .select()
+      .from(cashFlowSheetCells)
+      .where(
+        and(
+          eq(cashFlowSheetCells.tenantId, tenantId),
+          inArray(cashFlowSheetCells.lineCode, parentCodes),
+        ),
+      );
+    const result: GroupBudgets = {};
+    for (const c of cells) {
+      if (!result[c.lineCode]) result[c.lineCode] = {};
+      result[c.lineCode]![c.periodYm] = Number(c.amount);
+    }
+    return result;
+  });
+}
+
+const loadGroupBudgetsCached = cacheByTenant("groupBudgets", runLoadGroupBudgets);
+
+export async function loadGroupBudgets(): Promise<GroupBudgets> {
+  const tenantId = await resolveTenantId();
+  if (!tenantId || !process.env.DATABASE_URL) return {};
+  return loadGroupBudgetsCached(tenantId);
+}
+
 // ── Clientes ──────────────────────────────────────────────────────────────────
 
 async function runLoadClients(tenantId: string) {

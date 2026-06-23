@@ -22,18 +22,19 @@ export async function GET() {
   const sql = getSql();
   const cells = await withTenant(sql, tenantId, async (db) => {
     const cats = await db
-      .select({ code: businessCategories.code })
+      .select({ code: businessCategories.code, parentCode: businessCategories.parentCode })
       .from(businessCategories)
       .where(eq(businessCategories.tenantId, tenantId));
     if (cats.length === 0) return [];
-    const codes = cats.map((c) => c.code);
+    // Budget is stored per parent group code
+    const parentCodes = [...new Set(cats.map((c) => c.parentCode ?? c.code))];
     return db
       .select()
       .from(cashFlowSheetCells)
       .where(
         and(
           eq(cashFlowSheetCells.tenantId, tenantId),
-          inArray(cashFlowSheetCells.lineCode, codes),
+          inArray(cashFlowSheetCells.lineCode, parentCodes),
         ),
       );
   });
@@ -73,10 +74,11 @@ export async function PATCH(req: Request) {
     await withTenant(sql, tenantId, async (db) => {
       // Fetch valid codes + months for this tenant
       const cats = await db
-        .select({ code: businessCategories.code })
+        .select({ code: businessCategories.code, parentCode: businessCategories.parentCode })
         .from(businessCategories)
         .where(eq(businessCategories.tenantId, tenantId));
-      const validCodes = new Set(cats.map((c) => c.code));
+      // Accept parent group codes (used as budget keys)
+      const validCodes = new Set(cats.map((c) => c.parentCode ?? c.code));
 
       const [settings] = await db
         .select({ startYm: cashFlowSheetSettings.startYm })

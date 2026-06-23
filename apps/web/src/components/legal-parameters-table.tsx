@@ -70,6 +70,7 @@ export function LegalParametersTable({ legal }: { legal: LegalParamsRecord }) {
   const [values, setValues] = useState<FormValues>(() => toFormValues(legal));
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
 
   const refs = useMemo(() => legal.referencesJson ?? null, [legal.referencesJson]);
 
@@ -89,10 +90,12 @@ export function LegalParametersTable({ legal }: { legal: LegalParamsRecord }) {
 
   function setField(field: ValueField, v: string) {
     setValues((prev) => ({ ...prev, [field]: v }));
+    setSuccess(false);
   }
 
   async function save() {
     setErr(null);
+    setSuccess(false);
     setSaving(true);
     try {
       const payload = {
@@ -120,6 +123,7 @@ export function LegalParametersTable({ legal }: { legal: LegalParamsRecord }) {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error ?? "Error al guardar");
+      setSuccess(true);
       router.refresh();
     } catch (e) {
       setErr(String(e));
@@ -210,6 +214,9 @@ export function LegalParametersTable({ legal }: { legal: LegalParamsRecord }) {
         <p className="text-xs text-zinc-500 dark:text-zinc-400">{legal.notes}</p>
       )}
       {err && <p className="text-sm text-red-600 dark:text-red-400">{err}</p>}
+      {success && (
+        <p className="text-sm text-emerald-600 dark:text-emerald-400">Cambios guardados correctamente.</p>
+      )}
       {isAdmin && (
         <Button type="button" onClick={() => void save()} disabled={saving}>
           {saving ? "Guardando…" : "Guardar cambios"}

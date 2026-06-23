@@ -51,6 +51,7 @@ export function PrestacionesSocialesTable({ payroll }: { payroll: PayrollParamsR
   const [values, setValues] = useState<FormValues>(() => toFormValues(payroll));
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
 
   const refs = useMemo(() => payroll.prestacionesRefsJson ?? null, [payroll.prestacionesRefsJson]);
 
@@ -75,10 +76,12 @@ export function PrestacionesSocialesTable({ payroll }: { payroll: PayrollParamsR
 
   function setField(field: PrestacionesField, v: string) {
     setValues((prev) => ({ ...prev, [field]: v }));
+    setSuccess(false);
   }
 
   async function save() {
     setErr(null);
+    setSuccess(false);
     setSaving(true);
     try {
       const payload = {
@@ -100,6 +103,7 @@ export function PrestacionesSocialesTable({ payroll }: { payroll: PayrollParamsR
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error ?? "Error al guardar");
+      setSuccess(true);
       router.refresh();
     } catch (e) {
       setErr(String(e));
@@ -159,6 +163,9 @@ export function PrestacionesSocialesTable({ payroll }: { payroll: PayrollParamsR
         </table>
       </div>
       {err && <p className="text-sm text-red-600 dark:text-red-400">{err}</p>}
+      {success && (
+        <p className="text-sm text-emerald-600 dark:text-emerald-400">Cambios guardados correctamente.</p>
+      )}
       {isAdmin && (
         <Button type="button" onClick={() => void save()} disabled={saving}>
           {saving ? "Guardando…" : "Guardar cambios"}

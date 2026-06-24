@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 const P = {
   dashboard: "/dashboard",
   flujoCaja: "/flujo-caja",
+  centrosCostos: "/centros-de-costos",
   cartera: "/cartera",
   calendario: "/calendario-tributario",
   supuestos: "/supuestos",
@@ -14,6 +15,13 @@ const P = {
 export function revalidateCashRelatedPages() {
   revalidatePath(P.dashboard);
   revalidatePath(P.flujoCaja);
+  revalidatePath(P.centrosCostos);
+}
+
+/** Tras crear/editar/eliminar un centro de costos. */
+export function revalidateCostCentersPage() {
+  revalidatePath(P.centrosCostos);
+  revalidatePath(P.dashboard);
 }
 
 /** Tras crear movimiento de caja. */

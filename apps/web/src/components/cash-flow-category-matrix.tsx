@@ -1,10 +1,10 @@
 "use client";
 
 import { useMemo, useState, useCallback, useRef, useEffect } from "react";
-import type { BusinessCategoryRecord, CashFlowEntry, CategoryEntrySums, ClientRecord, TeamMemberRecord, GroupBudgets } from "@/lib/data";
+import type { BusinessCategoryRecord, CashFlowEntry, CategoryEntrySums, ClientRecord, TeamMemberRecord, GroupBudgets, CostCenterRecord } from "@/lib/data";
 import { CopAmountInput } from "@/components/cop-amount-input";
 import { cn } from "@/lib/cn";
-import { Plus, X, Trash2, ChevronLeft, ChevronRight, UserCircle, ArrowUpRight, ArrowDownLeft } from "lucide-react";
+import { Plus, X, Trash2, ChevronLeft, ChevronRight, UserCircle, ArrowUpRight, ArrowDownLeft, FolderKanban } from "lucide-react";
 import { DatePickerInput } from "@/components/date-picker-input";
 import { useRole } from "@/components/role-provider";
 
@@ -79,6 +79,7 @@ type EntryModalProps = {
   entries: CashFlowEntry[];
   clients?: ClientRecord[];
   teamMembers?: TeamMemberRecord[];
+  costCenters?: CostCenterRecord[];
   kind: "income" | "expense";
   onAdd: (entry: EntryDraft) => Promise<CashFlowEntry | null>;
   onDelete: (id: string) => Promise<void>;
@@ -93,6 +94,7 @@ function EntryModal({
   entries,
   clients = [],
   teamMembers = [],
+  costCenters = [],
   kind,
   onAdd,
   onDelete,
@@ -113,6 +115,11 @@ function EntryModal({
   const [err, setErr] = useState<string | null>(null);
 
   const isExpense = kind === "expense";
+
+  const linkedCostCenter = useMemo(
+    () => (!isExpense && clientId ? (costCenters.find((c) => c.clientId === clientId && c.active) ?? null) : null),
+    [clientId, costCenters, isExpense],
+  );
 
   const selectedYm = months[monthIdx]!;
   const monthEntriesForCode = entries.filter(
@@ -136,6 +143,7 @@ function EntryModal({
         amount,
         clientId: isExpense ? null : clientId || null,
         teamMemberId: isExpense ? teamMemberId || null : null,
+        costCenterId: null,
       });
       setAmount(0);
       setDescription("");
@@ -289,6 +297,12 @@ function EntryModal({
                       </option>
                     ))}
                   </select>
+                )}
+                {linkedCostCenter && (
+                  <div className="flex items-center gap-1.5 rounded-md bg-blue-50 px-2.5 py-1.5 text-xs text-blue-700 dark:bg-blue-950/30 dark:text-blue-400">
+                    <FolderKanban className="h-3.5 w-3.5 shrink-0" />
+                    Se vinculará a: <span className="font-medium">{linkedCostCenter.name}</span>
+                  </div>
                 )}
               </div>
             )}
@@ -899,6 +913,7 @@ type Props = {
   saldoInicial: number;
   clients?: ClientRecord[];
   teamMembers?: TeamMemberRecord[];
+  costCenters?: CostCenterRecord[];
   initialBudgets: GroupBudgets;
 };
 
@@ -912,6 +927,7 @@ export function CashFlowCategoryMatrix({
   saldoInicial,
   clients = [],
   teamMembers = [],
+  costCenters = [],
   initialBudgets,
 }: Props) {
   const { isAdmin } = useRole();
@@ -1256,6 +1272,7 @@ export function CashFlowCategoryMatrix({
           entries={entries}
           clients={clients}
           teamMembers={teamMembers}
+          costCenters={costCenters}
           kind={openModal.kind}
           onAdd={handleAdd}
           onDelete={handleDelete}

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { cashFlowEntries, withTenant } from "@we4labs/db";
+import { cashFlowEntries, costCenters, withTenant } from "@we4labs/db";
 import { and, eq } from "drizzle-orm";
 import { getSql } from "@/lib/db";
 import { revalidateCashRelatedPages } from "@/lib/revalidate-data";
@@ -49,6 +49,7 @@ export async function POST(req: Request) {
       amount?: unknown;
       clientId?: unknown;
       teamMemberId?: unknown;
+      costCenterId?: unknown;
     };
 
     const categoryCode = typeof raw.categoryCode === "string" ? raw.categoryCode.trim() : null;
@@ -62,7 +63,33 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Monto inválido" }, { status: 400 });
     }
 
+    let resolvedClientId = typeof raw.clientId === "string" ? raw.clientId : null;
+    let resolvedCostCenterId = typeof raw.costCenterId === "string" ? raw.costCenterId : null;
+    const resolvedTeamMemberId = typeof raw.teamMemberId === "string" ? raw.teamMemberId : null;
+
     const sql = getSql();
+
+    // Auto-link: clientId → costCenterId
+    if (resolvedClientId && !resolvedCostCenterId) {
+      const [match] = await withTenant(sql, tenantId, (db) =>
+        db.select({ id: costCenters.id })
+          .from(costCenters)
+          .where(and(eq(costCenters.tenantId, tenantId), eq(costCenters.clientId, resolvedClientId!), eq(costCenters.active, true)))
+          .limit(1),
+      );
+      if (match) resolvedCostCenterId = match.id;
+    }
+    // Auto-link: costCenterId → clientId
+    else if (resolvedCostCenterId && !resolvedClientId) {
+      const [center] = await withTenant(sql, tenantId, (db) =>
+        db.select({ clientId: costCenters.clientId })
+          .from(costCenters)
+          .where(and(eq(costCenters.id, resolvedCostCenterId!), eq(costCenters.tenantId, tenantId)))
+          .limit(1),
+      );
+      if (center?.clientId) resolvedClientId = center.clientId;
+    }
+
     const [inserted] = await withTenant(sql, tenantId, (db) =>
       db
         .insert(cashFlowEntries)
@@ -73,8 +100,9 @@ export async function POST(req: Request) {
           occurredOn: typeof raw.occurredOn === "string" ? raw.occurredOn : null,
           description: typeof raw.description === "string" ? raw.description.trim() || null : null,
           amount: String(amount),
-          clientId: typeof raw.clientId === "string" ? raw.clientId : null,
-          teamMemberId: typeof raw.teamMemberId === "string" ? raw.teamMemberId : null,
+          clientId: resolvedClientId,
+          teamMemberId: resolvedTeamMemberId,
+          costCenterId: resolvedCostCenterId,
         })
         .returning(),
     );

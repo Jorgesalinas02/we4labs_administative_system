@@ -13,6 +13,7 @@ import {
   TrendingUp,
   Users,
   Users2,
+  FolderKanban,
   Settings,
 } from "lucide-react";
 import { UserButton } from "@clerk/nextjs";
@@ -27,6 +28,7 @@ const nav = [
   { href: "/proyecciones", label: "Proyecciones", icon: TrendingUp },
   { href: "/clientes", label: "Clientes", icon: Users },
   { href: "/equipo", label: "Equipo", icon: Users2 },
+  { href: "/centros-de-costos", label: "Centros de costos", icon: FolderKanban },
   { href: "/cartera", label: "Cuentas por Cobrar", icon: Landmark },
   { href: "/calendario-tributario", label: "Calendario tributario", icon: CalendarDays },
   { href: "/guia-obligaciones", label: "Guía obligaciones", icon: BookOpen },

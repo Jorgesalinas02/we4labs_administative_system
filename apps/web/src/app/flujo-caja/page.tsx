@@ -6,6 +6,7 @@ import {
   loadClients,
   loadTeamMembers,
   loadGroupBudgets,
+  loadCostCenters,
 } from "@/lib/data";
 import { CashFlowCategoryMatrix } from "@/components/cash-flow-category-matrix";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,12 +17,13 @@ export default async function FlujoCajaPage() {
     return <p className="text-sm text-zinc-500">Conecta la base de datos.</p>;
   }
 
-  const [sheet, allCategories, categoryEntries, clientsList, teamMembersList] = await Promise.all([
+  const [sheet, allCategories, categoryEntries, clientsList, teamMembersList, costCentersList] = await Promise.all([
     loadCashFlowSheet(),
     loadBusinessCategories(),
     loadCategoryEntries(),
     loadClients(),
     loadTeamMembers(),
+    loadCostCenters(),
   ]);
 
   // Cargado aparte para no romper el resto si falla
@@ -68,6 +70,7 @@ export default async function FlujoCajaPage() {
             clients={clientsList}
             teamMembers={teamMembersList}
             initialBudgets={groupBudgets}
+            costCenters={costCentersList}
           />
         </CardContent>
       </Card>

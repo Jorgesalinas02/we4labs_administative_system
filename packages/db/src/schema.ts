@@ -291,6 +291,26 @@ export const clients = pgTable("clients", {
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
 });
 
+/** Centros de costos / proyectos del tenant. */
+export const costCenters = pgTable("cost_centers", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  tenantId: uuid("tenant_id")
+    .notNull()
+    .references(() => tenants.id, { onDelete: "cascade" }),
+  name: varchar("name", { length: 200 }).notNull(),
+  clientId: uuid("client_id").references(() => clients.id, { onDelete: "set null" }),
+  /** Monto cotizado / presupuesto del proyecto (COP). */
+  quotedAmount: numeric("quoted_amount", { precision: 18, scale: 2 }).notNull().default("0"),
+  startDate: varchar("start_date", { length: 10 }),
+  endDate: varchar("end_date", { length: 10 }),
+  /** Estado: en_progreso | completado | pausado */
+  status: varchar("status", { length: 32 }).notNull().default("en_progreso"),
+  description: text("description"),
+  active: boolean("active").notNull().default(true),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
+});
+
 /** Miembros del equipo / prestadores de servicios del tenant. */
 export const teamMembers = pgTable("team_members", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -320,6 +340,7 @@ export const cashFlowEntries = pgTable("cash_flow_entries", {
   amount: numeric("amount", { precision: 18, scale: 2 }).notNull().default("0"),
   clientId: uuid("client_id").references(() => clients.id, { onDelete: "set null" }),
   teamMemberId: uuid("team_member_id").references(() => teamMembers.id, { onDelete: "set null" }),
+  costCenterId: uuid("cost_center_id").references(() => costCenters.id, { onDelete: "set null" }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
 });

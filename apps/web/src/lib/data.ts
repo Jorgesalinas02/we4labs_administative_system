@@ -17,6 +17,7 @@ import {
   cashFlowEntries,
   clients,
   teamMembers,
+  costCenters,
   emailAllowlist,
 } from "@we4labs/db";
 import {
@@ -473,6 +474,7 @@ export type CashFlowEntry = {
   amount: number;
   clientId: string | null;
   teamMemberId: string | null;
+  costCenterId: string | null;
   createdAt: Date | null;
 };
 
@@ -507,6 +509,7 @@ async function runLoadCategoryEntries(tenantId: string): Promise<{
         amount: amt,
         clientId: r.clientId ?? null,
         teamMemberId: r.teamMemberId ?? null,
+        costCenterId: r.costCenterId ?? null,
         createdAt: r.createdAt ?? null,
       });
     }
@@ -610,6 +613,29 @@ export async function loadTeamMembers() {
 }
 
 export type TeamMemberRecord = Awaited<ReturnType<typeof loadTeamMembers>>[number];
+
+// ── Centros de costos ─────────────────────────────────────────────────────────
+
+async function runLoadCostCenters(tenantId: string) {
+  const sql = getSql();
+  return withTenant(sql, tenantId, (db) =>
+    db
+      .select()
+      .from(costCenters)
+      .where(eq(costCenters.tenantId, tenantId))
+      .orderBy(asc(costCenters.name)),
+  );
+}
+
+const loadCostCentersCached = cacheByTenant("costCenters", runLoadCostCenters);
+
+export async function loadCostCenters() {
+  const tenantId = await resolveTenantId();
+  if (!tenantId || !process.env.DATABASE_URL) return [];
+  return loadCostCentersCached(tenantId);
+}
+
+export type CostCenterRecord = Awaited<ReturnType<typeof loadCostCenters>>[number];
 
 export type CashFlowSheetPayload = CashFlowSheetViewModel;
 export type ScenarioRecord = Awaited<ReturnType<typeof loadScenarios>>[number];
